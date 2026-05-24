@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "art_st5csHGGp0",
+  "canonical_name": "Gate Test Artist",
+  "tracks": [
+    {
+      "id": "trk_WwSv2aEt0E",
+      "title": "Gate Valid Normalize Test",
+      "length": 5,
+      "path": "tracks/Ww/Sv/trk_WwSv2aEt0E.xlrc"
+    }
+  ]
+}
