@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "art_CNkD8c4dKW",
+  "canonical_name": "Gate Test Artist",
+  "tracks": [
+    {
+      "id": "trk_jrZAPktNHe",
+      "title": "Gate Status Test",
+      "length": 5,
+      "path": "tracks/jr/ZA/trk_jrZAPktNHe.xlrc"
+    }
+  ]
+}
