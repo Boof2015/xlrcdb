@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "art_e4TvgSUPrq",
+  "canonical_name": "Smoke Test Artist",
+  "tracks": [
+    {
+      "id": "trk_pnH6Vzcgkw",
+      "title": "Smoke Test Track",
+      "length": 10,
+      "path": "tracks/pn/H6/trk_pnH6Vzcgkw.xlrc"
+    }
+  ]
+}
