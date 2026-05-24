@@ -115,6 +115,6 @@ close or merge pull requests automatically.
 
 After a raw same-repository `incoming/*.xlrc` PR passes `Check`, `Normalize
 Incoming` runs automatically. It validates and dry-runs the submission again,
-commits the normalized source and index files back to the same branch, and stops
-after dispatching `Check` for the normalized commit. Maintainers still review and
-merge manually.
+commits the normalized source and index files back to the same branch, runs the
+full check on the normalized commit, and publishes a commit status for the PR.
+Maintainers still review and merge manually.
