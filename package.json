@@ -11,7 +11,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@boof2015/xlrc": "^0.2.0",
+    "@boof2015/xlrc": "^0.2.1",
     "smol-toml": "^1.6.1"
   }
 }

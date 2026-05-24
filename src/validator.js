@@ -117,7 +117,7 @@ function validateTracks(entries, aliasIndex, errors) {
       errors.push(validationError("track-parse-warning", filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
-    for (const warning of entry.validationWarnings) {
+    for (const warning of entry.validationWarnings.filter((warning) => warning.code !== "invalid-length")) {
       errors.push(validationError("track-validation-warning", filePath, `Line ${warning.line}: ${warning.message}`));
     }
 

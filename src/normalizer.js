@@ -131,7 +131,7 @@ function planNormalization(repository, incomingEntries, generateId) {
       errors.push(validationError("incoming-parse-warning", entry.filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
-    for (const warning of entry.validationWarnings) {
+    for (const warning of entry.validationWarnings.filter((warning) => warning.code !== "invalid-length")) {
       errors.push(validationError("incoming-validation-warning", entry.filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
