@@ -119,7 +119,7 @@ After a raw same-repository `incoming/*.xlrc` PR passes `Check`, the
 `Normalize Incoming` workflow runs automatically. It refuses the base branch,
 requires a raw incoming data submission, validates the incoming files, runs a
 dry-run normalization, commits generated changes back to that branch, and then
-the normal PR checks apply. It does not merge pull requests.
+dispatches `Check` for the normalized commit. It does not merge pull requests.
 
 Maintainers can also run `Normalize Incoming` manually with a target branch name
 when a branch needs to be reprocessed.
