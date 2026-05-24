@@ -9,12 +9,13 @@ on:
 
 permissions:
   actions: read
+  contents: read
   issues: write
   pull-requests: read
 
 jobs:
   comment:
-    if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0]
+    if: github.event.workflow_run.event == 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -36,7 +37,29 @@ jobs:
             const marker = "<!-- xlrcdb-pr-gate-report -->";
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue_number = context.payload.workflow_run.pull_requests[0].number;
+            const run = context.payload.workflow_run;
+            const payloadPull = run.pull_requests?.find((pull) => pull.number);
+            let issue_number = payloadPull?.number;
+
+            if (!issue_number) {
+              const associatedPulls = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                {
+                  owner,
+                  repo,
+                  commit_sha: run.head_sha,
+                  per_page: 100
+                }
+              );
+              const associatedPull = associatedPulls.find((pull) => pull.state === "open") ?? associatedPulls[0];
+              issue_number = associatedPull?.number;
+            }
+
+            if (!issue_number) {
+              core.warning(`No pull request was found for Check run ${run.id} at ${run.head_sha}.`);
+              return;
+            }
+
             const conclusion = context.payload.workflow_run.conclusion;
             const reportPath = "pr-gate-report/report.md";
 
