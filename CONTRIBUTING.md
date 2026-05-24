@@ -112,3 +112,8 @@ validates raw incoming files, runs normalization in a temporary dry-run copy, an
 then runs the full repository check. Failed PR checks update one bot comment with
 the gate report. They do not close, normalize, commit, or merge pull requests
 automatically.
+
+The manual `Normalize Incoming` workflow is the controlled automation step. It
+only accepts raw `incoming/*.xlrc` submission branches, validates and dry-runs
+them first, commits the normalized source and index files back to the same
+branch, and stops there. Maintainers still review and merge manually.

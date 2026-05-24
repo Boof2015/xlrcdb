@@ -4,8 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: Branch or ref to normalize
+        description: Writable branch name to normalize
         required: true
+        type: string
+      base_ref:
+        description: Base branch to compare against
+        required: false
+        default: main
         type: string
 
 permissions:
@@ -20,11 +25,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Guard target branch
+        env:
+          TARGET_REF: ${{ github.event.inputs.ref }}
+          BASE_REF: ${{ github.event.inputs.base_ref }}
+        run: |
+          if [ "$TARGET_REF" = "$BASE_REF" ] || [ "$TARGET_REF" = "refs/heads/$BASE_REF" ]; then
+            echo "Refusing to normalize the base branch directly."
+            exit 1
+          fi
+
       - name: Checkout target ref
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           fetch-depth: 0
+
+      - name: Fetch base branch
+        env:
+          BASE_REF: ${{ github.event.inputs.base_ref }}
+        run: git fetch origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -34,6 +54,28 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Classify target branch
+        id: classify
+        env:
+          BASE_REF: ${{ github.event.inputs.base_ref }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pr-gates"
+          set -o pipefail
+          npm run classify:pr -- "origin/$BASE_REF" HEAD --github-output "$GITHUB_OUTPUT" --json-output "$RUNNER_TEMP/pr-gates/classification.json" 2>&1 | tee "$RUNNER_TEMP/pr-gates/classify.log"
+
+      - name: Require incoming data submission
+        if: steps.classify.outputs.kind != 'data-submission'
+        run: |
+          echo "Normalize Incoming only runs for raw incoming/*.xlrc submission branches."
+          echo "Current classification: ${{ steps.classify.outputs.kind }}"
+          exit 1
+
+      - name: Validate raw incoming submission
+        run: npm run validate && npm run validate:incoming
+
+      - name: Normalize dry-run
+        run: npm run normalize:dry-run
 
       - name: Normalize incoming files
         run: npm run normalize
@@ -59,10 +101,17 @@ jobs:
           git commit -m "Normalize incoming XLRC files"
           echo "commit_created=true" >> "$GITHUB_OUTPUT"
 
+      - name: Verify normalized commit scope
+        if: steps.commit-normalization.outputs.commit_created == 'true'
+        env:
+          BASE_REF: ${{ github.event.inputs.base_ref }}
+        run: npm run classify:pr -- "origin/$BASE_REF" HEAD
+
       - name: Check committed normalized state
         run: npm run check
 
       - name: Push normalization changes
         if: steps.commit-normalization.outputs.commit_created == 'true'
-        run: |
-          git push origin HEAD:${{ github.event.inputs.ref }}
+        env:
+          TARGET_REF: ${{ github.event.inputs.ref }}
+        run: git push origin "HEAD:$TARGET_REF"

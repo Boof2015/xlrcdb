@@ -116,6 +116,7 @@ single bot comment with the gate report when a PR check fails. It does not close
 normalize, commit, or merge pull requests.
 
 For branches that contain `incoming/*.xlrc`, maintainers can run the
-`Normalize Incoming` workflow manually with the target branch/ref. It normalizes
-the branch, commits generated changes back to that ref, and then the normal PR
-checks apply.
+`Normalize Incoming` workflow manually with the target branch name. It refuses
+the base branch, requires a raw incoming data submission, validates the incoming
+files, runs a dry-run normalization, commits generated changes back to that
+branch, and then the normal PR checks apply. It does not merge pull requests.
