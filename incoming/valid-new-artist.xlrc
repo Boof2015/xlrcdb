@@ -1,7 +1,5 @@
-[ti:Fixture Valid Track]
+[ti:Fixture Missing Length]
 [ar:Fixture Test Artist]
-[length:00:08]
 [lang:en]
 
-[00:00.00]first line
-[00:04.00]second line
+[00:00.00]this should fail
