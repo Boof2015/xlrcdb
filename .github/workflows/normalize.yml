@@ -12,23 +12,103 @@ on:
         required: false
         default: main
         type: string
+  workflow_run:
+    workflows:
+      - Check
+    types:
+      - completed
 
 permissions:
   contents: write
+  pull-requests: read
 
 concurrency:
-  group: normalize-${{ github.event.inputs.ref }}
+  group: normalize-${{ github.event.inputs.ref || github.event.workflow_run.head_sha || github.run_id }}
   cancel-in-progress: false
 
 jobs:
   normalize:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
 
     steps:
+      - name: Resolve target branch
+        id: target
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            if (context.eventName === "workflow_dispatch") {
+              core.setOutput("mode", "manual");
+              core.setOutput("skip", "false");
+              core.setOutput("target_ref", context.payload.inputs.ref);
+              core.setOutput("base_ref", context.payload.inputs.base_ref || "main");
+              core.setOutput("checkout_ref", context.payload.inputs.ref);
+              core.setOutput("checked_sha", "");
+              return;
+            }
+
+            const run = context.payload.workflow_run;
+            const payloadPull = run.pull_requests?.find((pull) => pull.number);
+            let pullNumber = payloadPull?.number;
+
+            if (!pullNumber) {
+              const associatedPulls = await github.paginate(
+                github.rest.repos.listPullRequestsAssociatedWithCommit,
+                {
+                  owner,
+                  repo,
+                  commit_sha: run.head_sha,
+                  per_page: 100
+                }
+              );
+              const associatedPull = associatedPulls.find((pull) => pull.state === "open") ?? associatedPulls[0];
+              pullNumber = associatedPull?.number;
+            }
+
+            core.setOutput("mode", "auto");
+
+            if (!pullNumber) {
+              core.setOutput("skip", "true");
+              core.setOutput("skip_reason", `No pull request was found for Check run ${run.id}.`);
+              return;
+            }
+
+            const { data: pull } = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pullNumber
+            });
+
+            if (pull.head.repo.full_name !== `${owner}/${repo}`) {
+              core.setOutput("skip", "true");
+              core.setOutput("skip_reason", `PR #${pullNumber} is from ${pull.head.repo.full_name}; automatic normalization can only push to same-repository branches.`);
+              return;
+            }
+
+            if (pull.head.sha !== run.head_sha) {
+              core.setOutput("skip", "true");
+              core.setOutput("skip_reason", `PR #${pullNumber} moved from ${run.head_sha} to ${pull.head.sha}; waiting for the latest Check run.`);
+              return;
+            }
+
+            core.setOutput("skip", "false");
+            core.setOutput("target_ref", pull.head.ref);
+            core.setOutput("base_ref", pull.base.ref);
+            core.setOutput("checkout_ref", run.head_sha);
+            core.setOutput("checked_sha", run.head_sha);
+
+      - name: Skip auto normalization
+        if: steps.target.outputs.skip == 'true'
+        run: echo "${{ steps.target.outputs.skip_reason }}"
+
       - name: Guard target branch
+        if: steps.target.outputs.skip != 'true'
         env:
-          TARGET_REF: ${{ github.event.inputs.ref }}
-          BASE_REF: ${{ github.event.inputs.base_ref }}
+          TARGET_REF: ${{ steps.target.outputs.target_ref }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: |
           if [ "$TARGET_REF" = "$BASE_REF" ] || [ "$TARGET_REF" = "refs/heads/$BASE_REF" ]; then
             echo "Refusing to normalize the base branch directly."
@@ -36,57 +116,74 @@ jobs:
           fi
 
       - name: Checkout target ref
+        if: steps.target.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.ref }}
+          ref: ${{ steps.target.outputs.checkout_ref }}
           fetch-depth: 0
 
       - name: Fetch base branch
+        if: steps.target.outputs.skip != 'true'
         env:
-          BASE_REF: ${{ github.event.inputs.base_ref }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: git fetch origin "$BASE_REF:refs/remotes/origin/$BASE_REF"
 
       - name: Setup Node
+        if: steps.target.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
+        if: steps.target.outputs.skip != 'true'
         run: npm ci
 
       - name: Classify target branch
+        if: steps.target.outputs.skip != 'true'
         id: classify
         env:
-          BASE_REF: ${{ github.event.inputs.base_ref }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: |
           mkdir -p "$RUNNER_TEMP/pr-gates"
           set -o pipefail
           npm run classify:pr -- "origin/$BASE_REF" HEAD --github-output "$GITHUB_OUTPUT" --json-output "$RUNNER_TEMP/pr-gates/classification.json" 2>&1 | tee "$RUNNER_TEMP/pr-gates/classify.log"
 
       - name: Require incoming data submission
-        if: steps.classify.outputs.kind != 'data-submission'
+        if: steps.target.outputs.mode == 'manual' && steps.classify.outputs.kind != 'data-submission'
         run: |
           echo "Normalize Incoming only runs for raw incoming/*.xlrc submission branches."
           echo "Current classification: ${{ steps.classify.outputs.kind }}"
           exit 1
 
+      - name: Stop auto run when normalization is not needed
+        if: steps.target.outputs.mode == 'auto' && steps.classify.outputs.kind != 'data-submission'
+        run: |
+          echo "Normalize Incoming only auto-runs for raw incoming/*.xlrc submissions."
+          echo "Current classification: ${{ steps.classify.outputs.kind }}"
+
       - name: Validate raw incoming submission
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm run validate && npm run validate:incoming
 
       - name: Normalize dry-run
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm run normalize:dry-run
 
       - name: Normalize incoming files
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm run normalize
 
       - name: Run tests
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm test
 
       - name: Validate normalized source data
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm run validate
 
       - name: Commit normalization changes
+        if: steps.classify.outputs.kind == 'data-submission'
         id: commit-normalization
         run: |
           if git diff --quiet; then
@@ -104,14 +201,25 @@ jobs:
       - name: Verify normalized commit scope
         if: steps.commit-normalization.outputs.commit_created == 'true'
         env:
-          BASE_REF: ${{ github.event.inputs.base_ref }}
+          BASE_REF: ${{ steps.target.outputs.base_ref }}
         run: npm run classify:pr -- "origin/$BASE_REF" HEAD
 
       - name: Check committed normalized state
+        if: steps.classify.outputs.kind == 'data-submission'
         run: npm run check
 
       - name: Push normalization changes
         if: steps.commit-normalization.outputs.commit_created == 'true'
         env:
-          TARGET_REF: ${{ github.event.inputs.ref }}
-        run: git push origin "HEAD:$TARGET_REF"
+          TARGET_REF: ${{ steps.target.outputs.target_ref }}
+          CHECKED_SHA: ${{ steps.target.outputs.checked_sha }}
+        run: |
+          if [ -n "$CHECKED_SHA" ]; then
+            remote_head="$(git ls-remote origin "refs/heads/$TARGET_REF" | cut -f1)"
+            if [ "$remote_head" != "$CHECKED_SHA" ]; then
+              echo "Refusing to push because $TARGET_REF moved from $CHECKED_SHA to $remote_head."
+              exit 1
+            fi
+          fi
+
+          git push origin "HEAD:$TARGET_REF"

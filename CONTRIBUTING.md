@@ -95,7 +95,8 @@ Do not attach the reading to the kanji plus trailing kana:
 2. Add your `.xlrc` file under `incoming/`.
 3. Open a pull request.
 4. Wait for the `Check` workflow.
-5. A maintainer runs the `Normalize Incoming` workflow on the PR branch.
+5. After checks pass, `Normalize Incoming` commits the generated changes back to
+   the PR branch.
 6. Review the generated artist, track, and index changes.
 7. Merge after checks pass.
 
@@ -107,13 +108,12 @@ touch data paths at all, and also fails data PRs that mix in tooling, workflow,
 package metadata, or documentation changes. Those non-submission changes require
 explicit maintainer review.
 
-The automated check currently reports the decision only. It classifies the PR,
-validates raw incoming files, runs normalization in a temporary dry-run copy, and
-then runs the full repository check. Failed PR checks update one bot comment with
-the gate report. They do not close, normalize, commit, or merge pull requests
-automatically.
+The automated check classifies the PR, validates raw incoming files, runs
+normalization in a temporary dry-run copy, and then runs the full repository
+check. Failed PR checks update one bot comment with the gate report. They do not
+close or merge pull requests automatically.
 
-The manual `Normalize Incoming` workflow is the controlled automation step. It
-only accepts raw `incoming/*.xlrc` submission branches, validates and dry-runs
-them first, commits the normalized source and index files back to the same
-branch, and stops there. Maintainers still review and merge manually.
+After a raw same-repository `incoming/*.xlrc` PR passes `Check`, `Normalize
+Incoming` runs automatically. It validates and dry-runs the submission again,
+commits the normalized source and index files back to the same branch, and stops
+there. Maintainers still review and merge manually.
