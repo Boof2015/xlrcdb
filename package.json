@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate:index": "node scripts/generate-index.mjs",
+    "normalize": "node scripts/normalize.mjs",
     "validate": "node scripts/validate.mjs",
     "test": "node --test test/*.test.mjs"
   },
