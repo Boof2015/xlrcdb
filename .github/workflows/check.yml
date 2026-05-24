@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -25,6 +27,19 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Classify PR
+        id: classify
+        if: github.event_name == 'pull_request'
+        run: npm run classify:pr -- ${{ github.event.pull_request.base.sha }} HEAD --github-output "$GITHUB_OUTPUT"
+
+      - name: Validate raw incoming submission
+        if: github.event_name != 'pull_request' || steps.classify.outputs.should_validate_raw == 'true'
+        run: npm run validate && npm run validate:incoming
+
+      - name: Normalize dry-run
+        if: github.event_name == 'pull_request' && steps.classify.outputs.should_normalize_dry_run == 'true'
+        run: npm run normalize:dry-run
 
       - name: Check repository
         run: npm run check

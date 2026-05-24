@@ -27,8 +27,9 @@ Run the same check used by CI:
 npm run check
 ```
 
-This runs tests, validates source data, regenerates `index/`, and fails if the
-generated index differs from what is committed.
+This runs tests, validates source data, validates any pending `incoming/`
+submissions, regenerates `index/`, and fails if the generated index differs from
+what is committed.
 
 ## Static Data Source
 
@@ -86,10 +87,32 @@ After normalizing, run:
 npm run check
 ```
 
+To validate incoming files without moving or rewriting anything, run:
+
+```sh
+npm run validate:incoming
+```
+
 ## Maintainer Workflow
 
 The `Check` GitHub Actions workflow runs automatically on pull requests and
 pushes to `main`.
+
+On pull requests, `Check` also verifies that PRs are data submissions. A normal
+submission PR may only change xlrcdb data paths: `incoming/`, `artists/`,
+`tracks/`, and `index/`. Backend, workflow, package, and documentation changes
+intentionally fail this check so they require explicit maintainer review.
+
+The PR check is deliberately gated:
+
+1. Classify the PR as a data submission, normalized data, manual review, or
+   invalid mixed change.
+2. Validate raw `incoming/*.xlrc` files for data submissions.
+3. Run normalization in a temporary dry-run copy for data submissions.
+4. Run the full repository check.
+
+The check workflow only reports and fails. It does not close, normalize, commit,
+or merge pull requests.
 
 For branches that contain `incoming/*.xlrc`, maintainers can run the
 `Normalize Incoming` workflow manually with the target branch/ref. It normalizes

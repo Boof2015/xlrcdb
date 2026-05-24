@@ -4,9 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "npm test && npm run validate && npm run generate:index && git diff --exit-code -- index",
+    "classify:pr": "node scripts/classify-pr.mjs",
+    "check": "npm test && npm run validate && npm run validate:incoming && npm run generate:index && git diff --exit-code -- index",
+    "check:pr-scope": "node scripts/check-pr-scope.mjs",
     "generate:index": "node scripts/generate-index.mjs",
     "normalize": "node scripts/normalize.mjs",
+    "normalize:dry-run": "node scripts/normalize-dry-run.mjs",
+    "validate:incoming": "node scripts/validate-incoming.mjs",
     "validate": "node scripts/validate.mjs",
     "test": "node --test test/*.test.mjs"
   },

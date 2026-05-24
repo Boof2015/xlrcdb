@@ -53,8 +53,16 @@ Run the repository check:
 npm run check
 ```
 
-`npm run check` verifies committed source data and generated indexes. Maintainers
-also run the incoming normalizer before merging new lyric submissions:
+`npm run check` verifies committed source data, pending incoming files, and
+generated indexes. To validate incoming files without moving or rewriting
+anything, run:
+
+```sh
+npm run validate:incoming
+```
+
+Maintainers also run the incoming normalizer before merging new lyric
+submissions:
 
 ```sh
 npm run normalize
@@ -93,3 +101,13 @@ Do not attach the reading to the kanji plus trailing kana:
 
 The browser submit page can prepare and export a valid `.xlrc`, but it does not
 create GitHub pull requests automatically yet.
+
+Submission PRs should only change xlrcdb data files. CI fails PRs that do not
+touch data paths at all, and also fails data PRs that mix in tooling, workflow,
+package metadata, or documentation changes. Those non-submission changes require
+explicit maintainer review.
+
+The automated check currently reports the decision only. It classifies the PR,
+validates raw incoming files, runs normalization in a temporary dry-run copy, and
+then runs the full repository check. It does not close, normalize, commit, or
+merge pull requests automatically.

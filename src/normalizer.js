@@ -74,6 +74,33 @@ export async function normalizeIncoming(rootDir, options = {}) {
   };
 }
 
+export async function validateIncoming(rootDir, options = {}) {
+  return (await inspectIncoming(rootDir, options)).errors;
+}
+
+export async function inspectIncoming(rootDir, options = {}) {
+  const root = path.resolve(rootDir);
+  const repository = await inspectRepository(root);
+  if (repository.errors.length > 0) {
+    return {
+      root,
+      repository,
+      incomingEntries: [],
+      errors: repository.errors
+    };
+  }
+
+  const incomingEntries = await readIncomingEntries(root);
+  const plan = planNormalization(repository, incomingEntries, options.generateId ?? validationIdGenerator());
+
+  return {
+    root,
+    repository,
+    incomingEntries,
+    errors: plan.errors
+  };
+}
+
 async function readIncomingEntries(root) {
   const incomingFiles = await findFiles(path.join(root, "incoming"), ".xlrc");
   const entries = [];
@@ -239,6 +266,15 @@ function randomId(prefix) {
   }
 
   return `${prefix}_${body}`;
+}
+
+function validationIdGenerator() {
+  let next = 0;
+  return (prefix) => {
+    const body = next.toString(36).padStart(10, "0").slice(-10);
+    next += 1;
+    return `${prefix}_${body}`;
+  };
 }
 
 function requiredIncomingHeader(value, header, filePath, errors) {
