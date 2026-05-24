@@ -7,16 +7,28 @@ import { classifyChangedFiles, parseNameStatus } from "../src/prScope.js";
 
 const execFileAsync = promisify(execFile);
 const args = process.argv.slice(2);
-const githubOutputIndex = args.indexOf("--github-output");
-const githubOutput = githubOutputIndex >= 0 ? args[githubOutputIndex + 1] : undefined;
-const jsonOutputIndex = args.indexOf("--json-output");
-const jsonOutput = jsonOutputIndex >= 0 ? args[jsonOutputIndex + 1] : undefined;
-const positional = args.filter((arg, index) => (
-  index !== githubOutputIndex &&
-  index !== githubOutputIndex + 1 &&
-  index !== jsonOutputIndex &&
-  index !== jsonOutputIndex + 1
-));
+let githubOutput;
+let jsonOutput;
+const positional = [];
+
+for (let index = 0; index < args.length; index += 1) {
+  const arg = args[index];
+
+  if (arg === "--github-output") {
+    githubOutput = args[index + 1];
+    index += 1;
+    continue;
+  }
+
+  if (arg === "--json-output") {
+    jsonOutput = args[index + 1];
+    index += 1;
+    continue;
+  }
+
+  positional.push(arg);
+}
+
 const [base, head = "HEAD"] = positional;
 
 if (!base) {

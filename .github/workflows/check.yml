@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p .pr-gates
           set -o pipefail
-          npm run classify:pr -- ${{ github.event.pull_request.base.sha }} HEAD --github-output "$GITHUB_OUTPUT" --json-output .pr-gates/classification.json 2>&1 | tee .pr-gates/classify.log
+          npm run classify:pr -- ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} --github-output "$GITHUB_OUTPUT" --json-output .pr-gates/classification.json 2>&1 | tee .pr-gates/classify.log
 
       - name: Validate raw incoming submission
         if: github.event_name != 'pull_request' || steps.classify.outputs.should_validate_raw == 'true'
