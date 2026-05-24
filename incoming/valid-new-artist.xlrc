@@ -1,5 +1,6 @@
-[ti:Fixture Missing Length]
+[ti:Fixture Bad Furigana]
 [ar:Fixture Test Artist]
-[lang:en]
+[length:00:06]
+[lang:ja]
 
-[00:00.00]this should fail
+[00:00.00]無い[ない]
