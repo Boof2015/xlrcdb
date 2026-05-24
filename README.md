@@ -118,3 +118,5 @@ For branches that contain `incoming/*.xlrc`, maintainers can run the
 `Normalize Incoming` workflow manually with the target branch/ref. It normalizes
 the branch, commits generated changes back to that ref, and then the normal PR
 checks apply.
+
+[mixed-pr-test]
