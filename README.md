@@ -54,6 +54,8 @@ await lookup({
 
 ## Adding Lyrics Locally
 
+For contributor-facing instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 For the current v0 workflow, add raw contribution files under `incoming/`:
 
 ```text
