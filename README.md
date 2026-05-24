@@ -30,6 +30,28 @@ npm run check
 This runs tests, validates source data, regenerates `index/`, and fails if the
 generated index differs from what is committed.
 
+## Static Data Source
+
+xlrcdb is intended to be served directly from GitHub Pages. 
+
+The default project-site URL is:
+
+```text
+https://boof2015.github.io/xlrcdb/
+```
+
+Clients using `@boof2015/xlrc` should pass that URL as the lookup source:
+
+```ts
+await lookup({
+  artist: "Artist Name",
+  title: "Track Title",
+  length: 222,
+  source: "https://boof2015.github.io/xlrcdb/"
+});
+```
+
+
 ## Adding Lyrics Locally
 
 For the current v0 workflow, add raw contribution files under `incoming/`:
