@@ -9,7 +9,14 @@ const execFileAsync = promisify(execFile);
 const args = process.argv.slice(2);
 const githubOutputIndex = args.indexOf("--github-output");
 const githubOutput = githubOutputIndex >= 0 ? args[githubOutputIndex + 1] : undefined;
-const positional = githubOutputIndex >= 0 ? args.slice(0, githubOutputIndex) : args;
+const jsonOutputIndex = args.indexOf("--json-output");
+const jsonOutput = jsonOutputIndex >= 0 ? args[jsonOutputIndex + 1] : undefined;
+const positional = args.filter((arg, index) => (
+  index !== githubOutputIndex &&
+  index !== githubOutputIndex + 1 &&
+  index !== jsonOutputIndex &&
+  index !== jsonOutputIndex + 1
+));
 const [base, head = "HEAD"] = positional;
 
 if (!base) {
@@ -24,6 +31,7 @@ if (!base) {
     shouldNormalizeDryRun: false
   };
   await writeGithubOutputs(result, githubOutput);
+  await writeJsonOutput(result, jsonOutput);
   console.log(JSON.stringify(result, null, 2));
   process.exit(0);
 }
@@ -37,6 +45,7 @@ const { stdout } = await execFileAsync("git", [
 
 const result = classifyChangedFiles(parseNameStatus(stdout));
 await writeGithubOutputs(result, githubOutput);
+await writeJsonOutput(result, jsonOutput);
 console.log(JSON.stringify(result, null, 2));
 
 if (result.errors.length > 0) {
@@ -56,4 +65,15 @@ async function writeGithubOutputs(result, filePath) {
     `canonical_count=${result.canonicalFiles.length}`,
     ""
   ].join("\n"));
+}
+
+async function writeJsonOutput(result, filePath) {
+  if (!filePath) {
+    return;
+  }
+
+  const { mkdir, writeFile } = await import("node:fs/promises");
+  const { dirname } = await import("node:path");
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, `${JSON.stringify(result, null, 2)}\n`);
 }

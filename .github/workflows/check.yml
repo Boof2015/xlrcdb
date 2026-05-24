@@ -31,15 +31,38 @@ jobs:
       - name: Classify PR
         id: classify
         if: github.event_name == 'pull_request'
-        run: npm run classify:pr -- ${{ github.event.pull_request.base.sha }} HEAD --github-output "$GITHUB_OUTPUT"
+        run: |
+          mkdir -p .pr-gates
+          set -o pipefail
+          npm run classify:pr -- ${{ github.event.pull_request.base.sha }} HEAD --github-output "$GITHUB_OUTPUT" --json-output .pr-gates/classification.json 2>&1 | tee .pr-gates/classify.log
 
       - name: Validate raw incoming submission
         if: github.event_name != 'pull_request' || steps.classify.outputs.should_validate_raw == 'true'
-        run: npm run validate && npm run validate:incoming
+        run: |
+          mkdir -p .pr-gates
+          set -o pipefail
+          { npm run validate && npm run validate:incoming; } 2>&1 | tee .pr-gates/validate-raw.log
 
       - name: Normalize dry-run
         if: github.event_name == 'pull_request' && steps.classify.outputs.should_normalize_dry_run == 'true'
-        run: npm run normalize:dry-run
+        run: |
+          mkdir -p .pr-gates
+          set -o pipefail
+          npm run normalize:dry-run 2>&1 | tee .pr-gates/normalize-dry-run.log
 
       - name: Check repository
-        run: npm run check
+        run: |
+          mkdir -p .pr-gates
+          set -o pipefail
+          npm run check 2>&1 | tee .pr-gates/check.log
+
+      - name: Write PR gate report
+        if: always() && github.event_name == 'pull_request'
+        run: npm run write:pr-report -- .pr-gates/report.md .pr-gates
+
+      - name: Upload PR gate report
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-gate-report
+          path: .pr-gates/report.md

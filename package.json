@@ -12,7 +12,8 @@
     "normalize:dry-run": "node scripts/normalize-dry-run.mjs",
     "validate:incoming": "node scripts/validate-incoming.mjs",
     "validate": "node scripts/validate.mjs",
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "write:pr-report": "node scripts/write-pr-gate-report.mjs"
   },
   "dependencies": {
     "@boof2015/xlrc": "^0.2.1",

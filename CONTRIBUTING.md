@@ -109,5 +109,6 @@ explicit maintainer review.
 
 The automated check currently reports the decision only. It classifies the PR,
 validates raw incoming files, runs normalization in a temporary dry-run copy, and
-then runs the full repository check. It does not close, normalize, commit, or
-merge pull requests automatically.
+then runs the full repository check. Failed PR checks update one bot comment with
+the gate report. They do not close, normalize, commit, or merge pull requests
+automatically.

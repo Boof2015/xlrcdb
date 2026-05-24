@@ -111,8 +111,9 @@ The PR check is deliberately gated:
 3. Run normalization in a temporary dry-run copy for data submissions.
 4. Run the full repository check.
 
-The check workflow only reports and fails. It does not close, normalize, commit,
-or merge pull requests.
+The check workflow reports and fails. A follow-up comment workflow updates a
+single bot comment with the gate report when a PR check fails. It does not close,
+normalize, commit, or merge pull requests.
 
 For branches that contain `incoming/*.xlrc`, maintainers can run the
 `Normalize Incoming` workflow manually with the target branch/ref. It normalizes
