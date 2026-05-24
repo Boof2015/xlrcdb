@@ -8,7 +8,7 @@ import { validateRepository } from "../src/validator.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
-test("empty repository passes", async () => {
+test("current repository passes", async () => {
   assert.deepEqual(await validateRepository(repoRoot), []);
 });
 

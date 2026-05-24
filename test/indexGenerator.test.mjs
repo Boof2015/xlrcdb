@@ -5,15 +5,21 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildIndexFiles, generateIndex } from "../src/indexGenerator.js";
+import { findFiles } from "../src/repository.js";
 import { validateRepository } from "../src/validator.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
-test("empty repository produces the existing aliases index", async () => {
+test("repository index files match generated output", async () => {
   const files = await buildIndexFiles(repoRoot);
+  const committedIndexPaths = (await findFiles(path.join(repoRoot, "index"), ".json"))
+    .map((absolutePath) => path.relative(repoRoot, absolutePath).split(path.sep).join("/"));
 
-  assert.deepEqual([...files.keys()], ["index/aliases.json"]);
-  assert.equal(files.get("index/aliases.json"), await readFile(path.join(repoRoot, "index", "aliases.json"), "utf8"));
+  assert.deepEqual([...files.keys()], committedIndexPaths);
+
+  for (const repoPath of committedIndexPaths) {
+    assert.equal(files.get(repoPath), await readFile(path.join(repoRoot, repoPath), "utf8"));
+  }
 });
 
 test("aliases include canonical names and tracks resolve through aliases", async () => {
