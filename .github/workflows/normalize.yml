@@ -1,0 +1,61 @@
+name: Normalize Incoming
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or ref to normalize
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: normalize-${{ github.event.inputs.ref }}
+  cancel-in-progress: false
+
+jobs:
+  normalize:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Normalize incoming files
+        run: npm run normalize
+
+      - name: Run tests
+        run: npm test
+
+      - name: Validate normalized source data
+        run: npm run validate
+
+      - name: Verify index is current
+        run: npm run generate:index && git diff --exit-code -- index
+
+      - name: Commit normalization changes
+        run: |
+          if git diff --quiet; then
+            echo "No normalization changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add artists tracks incoming index
+          git commit -m "Normalize incoming XLRC files"
+          git push origin HEAD:${{ github.event.inputs.ref }}

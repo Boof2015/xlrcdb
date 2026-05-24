@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "npm test && npm run validate && npm run generate:index && git diff --exit-code -- index",
     "generate:index": "node scripts/generate-index.mjs",
     "normalize": "node scripts/normalize.mjs",
     "validate": "node scripts/validate.mjs",
