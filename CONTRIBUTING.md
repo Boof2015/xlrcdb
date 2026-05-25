@@ -1,8 +1,9 @@
 # Contributing to xlrcdb
 
-xlrcdb accepts lyric submissions as plain `.xlrc` files. For now, contributors
-submit files under `incoming/`; maintainers run the normalizer to move them into
-canonical `artists/`, `tracks/`, and `index/` paths.
+xlrcdb accepts lyric submissions as plain `.xlrc` files. Contributors add files
+under `incoming/`; once the PR's `Check` passes it is merged automatically, and a
+`Reconcile` job on `main` moves them into canonical `artists/`, `tracks/`, and
+`index/` paths.
 
 ## Submission Checklist
 
@@ -61,16 +62,16 @@ anything, run:
 npm run validate:incoming
 ```
 
-Maintainers also run the incoming normalizer before merging new lyric
-submissions:
+The `Reconcile` workflow runs the normalizer on `main` automatically, so you do
+not need to. To preview what it will do without rewriting anything, run the
+dry-run:
 
 ```sh
-npm run normalize
-npm run check
+npm run normalize:dry-run
 ```
 
-If normalization reports an XLRC parser or validation warning, fix the
-`incoming/*.xlrc` file and run it again.
+If it reports an XLRC parser or validation warning, fix the `incoming/*.xlrc`
+file and run it again.
 
 ## Furigana Notes
 
@@ -92,29 +93,34 @@ Do not attach the reading to the kanji plus trailing kana:
 ## Pull Request Flow
 
 1. Fork or branch from `main`.
-2. Add your `.xlrc` file under `incoming/`.
+2. Add your `.xlrc` file under `incoming/` (for an alias or lyric edit, change
+   the relevant `artists/` or `tracks/` file in place instead).
 3. Open a pull request.
-4. Wait for the `Check` workflow.
-5. After checks pass, `Normalize Incoming` commits the generated changes back to
-   the PR branch.
-6. Review the generated artist, track, and index changes.
-7. Merge after checks pass.
+4. `Check` classifies the PR and validates the raw submission. It never
+   regenerates `index/`, so two submissions can't conflict on it.
+5. When `Check` passes, `Auto-merge` merges the PR (fork PRs included).
+6. On `main`, `Reconcile` normalizes any `incoming/*.xlrc` (assigns stable IDs,
+   moves them under `tracks/`, auto-creates artists) and regenerates `index/`,
+   then commits. It runs on each merge plus a periodic backstop, so a track is
+   searchable shortly after merge and `incoming/` is briefly non-empty in between.
 
-The browser submit page can prepare and export a valid `.xlrc`, but it does not
-create GitHub pull requests automatically yet.
+The browser submit page can prepare and export a valid `.xlrc`, and once GitHub
+sign-in is configured it can open the pull request for you.
 
 Submission PRs should only change xlrcdb data files. CI fails PRs that do not
 touch data paths at all, and also fails data PRs that mix in tooling, workflow,
 package metadata, or documentation changes. Those non-submission changes require
 explicit maintainer review.
 
-The automated check classifies the PR, validates raw incoming files, runs
-normalization in a temporary dry-run copy, and then runs the full repository
-check. Failed PR checks update one bot comment with the gate report. They do not
-close or merge pull requests automatically.
+A brand-new artist is created automatically from the `[ar:]` header. To set a
+latin name, pronunciation, or extra aliases, edit the artist's `.toml` after it
+exists (the submit site's "Edit aliases" page opens that PR for you).
 
-After a raw same-repository `incoming/*.xlrc` PR passes `Check`, `Normalize
-Incoming` runs automatically. It validates and dry-runs the submission again,
-commits the normalized source and index files back to the same branch, runs the
-full check on the normalized commit, and publishes a commit status for the PR.
-Maintainers still review and merge manually.
+Auto-merge applies a content-neutral per-author daily limit (a spam throttle, not
+a review of the lyrics). Over the limit, a valid PR simply waits for a maintainer
+or for the 24-hour window to roll. Maintainers are exempt, and the cap is tunable
+via the `DAILY_MERGE_CAP` repository variable.
+
+Reconcile commits directly to `main`. If `main` is a protected branch, allow the
+`github-actions` bot to push to it (or run Reconcile with a token that can),
+otherwise the index will not update.

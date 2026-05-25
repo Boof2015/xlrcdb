@@ -3,10 +3,9 @@ name: Check
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches:
-      - main
 
+# PR gate only. It validates the raw submission and never touches the index:
+# index regeneration and normalization happen on main in the Reconcile workflow.
 permissions:
   contents: read
 
@@ -37,12 +36,18 @@ jobs:
           set -o pipefail
           npm run classify:pr -- ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} --github-output "$GITHUB_OUTPUT" --json-output .pr-gates/classification.json 2>&1 | tee .pr-gates/classify.log
 
-      - name: Validate raw incoming submission
+      - name: Validate data
+        run: |
+          mkdir -p .pr-gates
+          set -o pipefail
+          npm run validate 2>&1 | tee .pr-gates/validate-raw.log
+
+      - name: Validate incoming submission
         if: github.event_name != 'pull_request' || steps.classify.outputs.should_validate_raw == 'true'
         run: |
           mkdir -p .pr-gates
           set -o pipefail
-          { npm run validate && npm run validate:incoming; } 2>&1 | tee .pr-gates/validate-raw.log
+          npm run validate:incoming 2>&1 | tee -a .pr-gates/validate-raw.log
 
       - name: Normalize dry-run
         if: github.event_name == 'pull_request' && steps.classify.outputs.should_normalize_dry_run == 'true'
@@ -51,11 +56,8 @@ jobs:
           set -o pipefail
           npm run normalize:dry-run 2>&1 | tee .pr-gates/normalize-dry-run.log
 
-      - name: Check repository
-        run: |
-          mkdir -p .pr-gates
-          set -o pipefail
-          npm run check 2>&1 | tee .pr-gates/check.log
+      - name: Run tests
+        run: npm test
 
       - name: Write PR gate report
         if: always() && github.event_name == 'pull_request'
