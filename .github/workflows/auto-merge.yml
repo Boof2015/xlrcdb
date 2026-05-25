@@ -41,14 +41,14 @@ jobs:
             const run = context.payload.workflow_run;
             const cap = Number(process.env.DAILY_MERGE_CAP) || 30;
 
-            // Resolve the PR this Check run belongs to.
+            // Resolve the PR this Check run belongs to. For fork PRs,
+            // workflow_run.pull_requests is empty and the associated-commit lookup
+            // misses the fork's head commit, so fall back to matching an open PR by
+            // head SHA (works for same-repo and fork PRs alike).
             let pullNumber = run.pull_requests?.find((pull) => pull.number)?.number;
             if (!pullNumber) {
-              const associated = await github.paginate(
-                github.rest.repos.listPullRequestsAssociatedWithCommit,
-                { owner, repo, commit_sha: run.head_sha, per_page: 100 }
-              );
-              pullNumber = (associated.find((pull) => pull.state === "open") ?? associated[0])?.number;
+              const open = await github.paginate(github.rest.pulls.list, { owner, repo, state: "open", per_page: 100 });
+              pullNumber = open.find((pull) => pull.head.sha === run.head_sha)?.number;
             }
             if (!pullNumber) {
               core.info(`No pull request found for Check run ${run.id}.`);
