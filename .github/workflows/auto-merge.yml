@@ -19,6 +19,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: write
 
 concurrency:
   group: auto-merge-${{ github.event.workflow_run.head_sha }}
@@ -84,6 +85,17 @@ jobs:
               core.info(`Merged PR #${pullNumber}.`);
             } catch (error) {
               core.warning(`Could not merge PR #${pullNumber}: ${error.message}`);
+              return;
+            }
+
+            // A GITHUB_TOKEN merge does not trigger Reconcile's push event (Actions
+            // anti-recursion), so kick it explicitly. workflow_dispatch is exempt
+            // from that limitation; the cron is still there as a backstop.
+            try {
+              await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: "reconcile.yml", ref: "main" });
+              core.info("Dispatched Reconcile.");
+            } catch (error) {
+              core.warning(`Could not dispatch Reconcile (cron will catch it): ${error.message}`);
             }
 
             // Leave one comment (and no duplicates) when a PR is held by the cap.
