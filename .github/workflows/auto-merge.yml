@@ -35,6 +35,10 @@ jobs:
       - name: Merge clean data PR
         uses: actions/github-script@v7
         with:
+          # GITHUB_TOKEN 403s merging fork PRs that edit existing files. Use a PAT/App
+          # token (XLRCDB_BOT_TOKEN) when set; fall back to GITHUB_TOKEN, which still
+          # handles new-track submissions, until the secret is added.
+          github-token: ${{ secrets.XLRCDB_BOT_TOKEN || github.token }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -81,9 +85,7 @@ jobs:
             }
 
             try {
-              // Merge commit (not squash): GITHUB_TOKEN can 403 squash-merging fork PRs
-              // that edit existing files; a plain merge just references the head commit.
-              await github.rest.pulls.merge({ owner, repo, pull_number: pullNumber, merge_method: "merge" });
+              await github.rest.pulls.merge({ owner, repo, pull_number: pullNumber, merge_method: "squash" });
               core.info(`Merged PR #${pullNumber}.`);
             } catch (error) {
               core.warning(`Could not merge PR #${pullNumber}: ${error.message}`);
