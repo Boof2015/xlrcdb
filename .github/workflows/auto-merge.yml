@@ -81,7 +81,9 @@ jobs:
             }
 
             try {
-              await github.rest.pulls.merge({ owner, repo, pull_number: pullNumber, merge_method: "squash" });
+              // Merge commit (not squash): GITHUB_TOKEN can 403 squash-merging fork PRs
+              // that edit existing files; a plain merge just references the head commit.
+              await github.rest.pulls.merge({ owner, repo, pull_number: pullNumber, merge_method: "merge" });
               core.info(`Merged PR #${pullNumber}.`);
             } catch (error) {
               core.warning(`Could not merge PR #${pullNumber}: ${error.message}`);
