@@ -57,7 +57,11 @@ jobs:
           npm run normalize:dry-run 2>&1 | tee .pr-gates/normalize-dry-run.log
 
       - name: Run tests
+        # The repo-index-consistency test is enforced on main by Reconcile, not on
+        # PRs (an artist/track edit legitimately carries a not-yet-regenerated index).
         run: npm test
+        env:
+          XLRCDB_SKIP_INDEX_SYNC: "1"
 
       - name: Write PR gate report
         if: always() && github.event_name == 'pull_request'

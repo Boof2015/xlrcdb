@@ -10,7 +10,15 @@ import { validateRepository } from "../src/validator.js";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 
-test("repository index files match generated output", async () => {
+test("repository index files match generated output", {
+  // The committed index is regenerated on main by the Reconcile workflow, so a PR
+  // (which carries raw data with a possibly-stale index for artist/track edits)
+  // is not required to match. The PR gate sets XLRCDB_SKIP_INDEX_SYNC; this still
+  // runs locally and anywhere the flag is unset.
+  skip: process.env.XLRCDB_SKIP_INDEX_SYNC === "1"
+    ? "index is regenerated on main by Reconcile; not enforced on PRs"
+    : false
+}, async () => {
   const files = await buildIndexFiles(repoRoot);
   const committedIndexPaths = (await findFiles(path.join(repoRoot, "index"), ".json"))
     .map((absolutePath) => path.relative(repoRoot, absolutePath).split(path.sep).join("/"));
