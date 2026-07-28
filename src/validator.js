@@ -4,6 +4,7 @@ import {
   TRACK_ID_PATTERN,
   buildAliasIndex,
   expectedShardedPath,
+  inspectLanguageMetadata,
   normalizeKey,
   parseLengthSeconds,
   readArtistEntries,
@@ -117,7 +118,13 @@ function validateTracks(entries, aliasIndex, errors) {
       errors.push(validationError("track-parse-warning", filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
-    for (const warning of entry.validationWarnings.filter((warning) => warning.code !== "invalid-length")) {
+    for (const warning of entry.validationWarnings.filter((warning) => (
+      warning.code !== "invalid-length" &&
+      !(
+        warning.code === "invalid-lang" &&
+        (typeof entry.file.meta.lang !== "string" || entry.file.meta.lang.trim() === "")
+      )
+    ))) {
       errors.push(validationError("track-validation-warning", filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
@@ -125,6 +132,7 @@ function validateTracks(entries, aliasIndex, errors) {
     const artist = requiredHeader(file.meta.ar, "ar", filePath, errors);
     const title = requiredHeader(file.meta.ti, "ti", filePath, errors);
     const length = requiredHeader(file.meta.length, "length", filePath, errors);
+    const languageMetadataValid = validateTrackLanguageMetadata(file, filePath, errors);
     const lengthSeconds = typeof length === "string" ? parseLengthSeconds(length) : undefined;
 
     if (typeof length === "string" && lengthSeconds === undefined) {
@@ -136,7 +144,7 @@ function validateTracks(entries, aliasIndex, errors) {
       errors.push(validationError("track-artist", filePath, `Track artist "${artist}" does not match any artist alias`));
     }
 
-    if (artistMatch && typeof title === "string" && lengthSeconds !== undefined) {
+    if (artistMatch && typeof title === "string" && lengthSeconds !== undefined && languageMetadataValid) {
       tracks.push({
         id,
         artistId: artistMatch.artist.id,
@@ -149,6 +157,24 @@ function validateTracks(entries, aliasIndex, errors) {
   }
 
   return tracks;
+}
+
+function validateTrackLanguageMetadata(file, filePath, errors) {
+  const metadata = inspectLanguageMetadata(file);
+
+  for (const header of metadata.missingHeaders) {
+    errors.push(validationError("track-required-header", filePath, `Track must include non-empty [${header}:] metadata`));
+  }
+
+  if (metadata.missingLanguages.length > 0) {
+    errors.push(validationError(
+      "track-language-coverage",
+      filePath,
+      `Track [langs:] must include [lang:] and every inline translation language; missing: ${metadata.missingLanguages.join(", ")}`
+    ));
+  }
+
+  return metadata.missingHeaders.length === 0 && metadata.missingLanguages.length === 0;
 }
 
 function validateDuplicateTracks(tracks, errors) {

@@ -152,6 +152,8 @@ async function writeTrack(root, track) {
     `[ti:${track.title}]`,
     `[ar:${track.artist}]`,
     `[length:${track.length}]`,
+    "[lang:en]",
+    "[langs:en]",
     "[00:00.00]x",
     ""
   ].join("\n"));

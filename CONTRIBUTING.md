@@ -36,8 +36,10 @@ Full policy, and how to report content, in [LEGAL.md](LEGAL.md).
 ### Checklist
 
 - Use a valid `.xlrc` file.
-- Include non-empty `[ti:]`, `[ar:]`, and `[length:]` headers.
+- Include non-empty `[ti:]`, `[ar:]`, `[length:]`, `[lang:]`, and `[langs:]` headers.
 - Format length as `mm:ss`, with seconds below 60.
+- List the primary lyric language in both `[lang:]` and `[langs:]`, and include every
+  inline translation language in `[langs:]`.
 - Put the file under `incoming/`.
 - Keep one track per `.xlrc` file.
 - Do not edit `artists/`, `tracks/`, or `index/` by hand for a normal lyric submission.
@@ -50,11 +52,25 @@ Every submitted track must include these headers before the lyric lines:
 [ti:Track Title]
 [ar:Artist Name]
 [length:03:42]
+[lang:en]
+[langs:en]
 ```
 
 The `[length:]` header is required by xlrcdb so lookup clients can match a track by artist,
 title, and duration. The upstream XLRC format treats this field as optional, but this database
 requires it.
+
+The `[lang:]` header identifies the primary language of the lyrics. The `[langs:]` header is
+a comma-separated list of every language present in the file, including the primary language
+and inline `[>language]` translations. A Japanese track with English translations would use:
+
+```text
+[lang:ja]
+[langs:ja,en]
+```
+
+Additional languages are allowed for multilingual base lyrics. Language comparisons are
+case-insensitive, and the primary language does not have to appear first.
 
 ### File Location
 

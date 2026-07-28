@@ -21,6 +21,59 @@ export function parseLengthSeconds(value) {
   return Number.parseInt(match[1], 10) * 60 + Number.parseInt(match[2], 10);
 }
 
+export function inspectLanguageMetadata(file) {
+  const meta = file?.meta && typeof file.meta === "object" ? file.meta : {};
+  const primaryLanguage = typeof meta.lang === "string" ? meta.lang.trim() : "";
+  const languages = Array.isArray(meta.langs)
+    ? meta.langs
+      .filter((language) => typeof language === "string")
+      .map((language) => language.trim())
+      .filter(Boolean)
+    : [];
+  const missingHeaders = [];
+
+  if (!primaryLanguage) {
+    missingHeaders.push("lang");
+  }
+  if (languages.length === 0) {
+    missingHeaders.push("langs");
+  }
+
+  const requiredLanguages = new Map();
+  if (primaryLanguage) {
+    requiredLanguages.set(normalizeLanguageTag(primaryLanguage), primaryLanguage);
+  }
+
+  if (Array.isArray(file?.lines)) {
+    for (const line of file.lines) {
+      if (!Array.isArray(line?.translations)) {
+        continue;
+      }
+      for (const translation of line.translations) {
+        if (typeof translation?.lang !== "string" || translation.lang.trim() === "") {
+          continue;
+        }
+        const language = translation.lang.trim();
+        requiredLanguages.set(normalizeLanguageTag(language), language);
+      }
+    }
+  }
+
+  const declaredLanguages = new Set(languages.map(normalizeLanguageTag));
+  const missingLanguages = languages.length === 0
+    ? []
+    : [...requiredLanguages]
+      .filter(([normalized]) => !declaredLanguages.has(normalized))
+      .map(([, language]) => language);
+
+  return {
+    primaryLanguage,
+    languages,
+    missingHeaders,
+    missingLanguages
+  };
+}
+
 export async function readArtistEntries(root) {
   const artistFiles = await findFiles(path.join(root, "artists"), ".toml");
   const entries = [];
@@ -151,4 +204,8 @@ export function toRepoPath(root, absolutePath) {
 
 export function validationError(code, filePath, message) {
   return { code, filePath, message };
+}
+
+function normalizeLanguageTag(language) {
+  return language.toLowerCase();
 }

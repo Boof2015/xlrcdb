@@ -11,7 +11,8 @@ Source or timing notes:
 ## Checklist
 
 - [ ] I added each new lyric file under `incoming/`.
-- [ ] Each submitted `.xlrc` file includes `[ti:]`, `[ar:]`, and `[length:mm:ss]`.
+- [ ] Each submitted `.xlrc` file includes `[ti:]`, `[ar:]`, `[length:mm:ss]`, `[lang:]`, and `[langs:]`.
+- [ ] `[langs:]` includes the primary `[lang:]` and every inline `[>language]` translation.
 - [ ] I did not manually edit generated `index/**` files for this submission.
 - [ ] I checked for an existing matching artist, title, and duration when possible.
 - [ ] I have the rights or permission to submit this content. I understand that xlrcdb does

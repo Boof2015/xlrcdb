@@ -68,12 +68,32 @@ test("normalizes an incoming track by creating a new artist", async () => {
 
 test("rejects invalid incoming files before writing", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-normalize-invalid-"));
-  await writeIncoming(root, "bad.xlrc", "[ti:Example Track]\n[ar:Example Artist]\n[00:00.00]x\n");
+  await writeIncoming(
+    root,
+    "bad.xlrc",
+    "[ti:Example Track]\n[ar:Example Artist]\n[lang:en]\n[langs:en]\n[00:00.00]x\n"
+  );
 
   const errors = await captureNormalizationErrors(() => normalizeIncoming(root, { generateId: queuedIds(["art_5k3n9p2xq7"]) }));
 
   assert.deepEqual(errors.map((error) => error.code), ["incoming-required-header"]);
   assert.equal(await pathExists(path.join(root, "incoming", "bad.xlrc")), true);
+  assert.equal(await pathExists(path.join(root, "artists")), false);
+  assert.equal(await pathExists(path.join(root, "tracks")), false);
+});
+
+test("rejects inconsistent language metadata before writing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-normalize-language-"));
+  await writeIncoming(root, "bad-language.xlrc", validTrack({
+    lang: "ja",
+    langs: "ja",
+    line: "[00:00.00]例\n[>en]Example"
+  }));
+
+  const errors = await captureNormalizationErrors(() => normalizeIncoming(root, { generateId: queuedIds([]) }));
+
+  assert.deepEqual(errors.map((error) => error.code), ["incoming-language-coverage"]);
+  assert.equal(await pathExists(path.join(root, "incoming", "bad-language.xlrc")), true);
   assert.equal(await pathExists(path.join(root, "artists")), false);
   assert.equal(await pathExists(path.join(root, "tracks")), false);
 });
@@ -133,7 +153,9 @@ function validTrack(options = {}) {
     `[ti:${options.title ?? "Example Track"}]`,
     `[ar:${options.artist ?? "Example Artist"}]`,
     `[length:${options.length ?? "00:10"}]`,
-    "[00:00.00]x",
+    `[lang:${options.lang ?? "en"}]`,
+    `[langs:${options.langs ?? "en"}]`,
+    options.line ?? "[00:00.00]x",
     ""
   ].join("\n");
 }

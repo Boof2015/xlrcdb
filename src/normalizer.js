@@ -9,6 +9,7 @@ import {
   TRACK_ID_PATTERN,
   expectedShardedPath,
   findFiles,
+  inspectLanguageMetadata,
   normalizeKey,
   parseLengthSeconds,
   validationError
@@ -158,20 +159,32 @@ function planNormalization(repository, incomingEntries, generateId) {
       errors.push(validationError("incoming-parse-warning", entry.filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
-    for (const warning of entry.validationWarnings.filter((warning) => warning.code !== "invalid-length")) {
+    for (const warning of entry.validationWarnings.filter((warning) => (
+      warning.code !== "invalid-length" &&
+      !(
+        warning.code === "invalid-lang" &&
+        (typeof entry.file.meta.lang !== "string" || entry.file.meta.lang.trim() === "")
+      )
+    ))) {
       errors.push(validationError("incoming-validation-warning", entry.filePath, `Line ${warning.line}: ${warning.message}`));
     }
 
     const artistName = requiredIncomingHeader(entry.file.meta.ar, "ar", entry.filePath, errors);
     const title = requiredIncomingHeader(entry.file.meta.ti, "ti", entry.filePath, errors);
     const length = requiredIncomingHeader(entry.file.meta.length, "length", entry.filePath, errors);
+    const languageMetadataValid = validateIncomingLanguageMetadata(entry.file, entry.filePath, errors);
     const lengthSeconds = typeof length === "string" ? parseLengthSeconds(length) : undefined;
 
     if (typeof length === "string" && lengthSeconds === undefined) {
       errors.push(validationError("incoming-length-format", entry.filePath, "Incoming [length:] must use mm:ss format"));
     }
 
-    if (typeof artistName !== "string" || typeof title !== "string" || lengthSeconds === undefined) {
+    if (
+      typeof artistName !== "string" ||
+      typeof title !== "string" ||
+      lengthSeconds === undefined ||
+      !languageMetadataValid
+    ) {
       continue;
     }
 
@@ -212,6 +225,24 @@ function planNormalization(repository, incomingEntries, generateId) {
   }
 
   return { errors, artistsToCreate, tracksToCreate };
+}
+
+function validateIncomingLanguageMetadata(file, filePath, errors) {
+  const metadata = inspectLanguageMetadata(file);
+
+  for (const header of metadata.missingHeaders) {
+    errors.push(validationError("incoming-required-header", filePath, `Incoming track must include non-empty [${header}:] metadata`));
+  }
+
+  if (metadata.missingLanguages.length > 0) {
+    errors.push(validationError(
+      "incoming-language-coverage",
+      filePath,
+      `Incoming [langs:] must include [lang:] and every inline translation language; missing: ${metadata.missingLanguages.join(", ")}`
+    ));
+  }
+
+  return metadata.missingHeaders.length === 0 && metadata.missingLanguages.length === 0;
 }
 
 function resolveOrCreateArtist(artistName, aliasIndex, usedIds, artistsToCreate, generateId, filePath, errors) {

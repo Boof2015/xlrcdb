@@ -14,7 +14,7 @@ test("current repository passes", async () => {
 
 test("missing required track headers fail", async () => {
   const root = await createFixtureRepo({
-    track: "[ti:Example Track]\n[length:00:10]\n[00:00.00]x\n"
+    track: "[ti:Example Track]\n[length:00:10]\n[lang:en]\n[langs:en]\n[00:00.00]x\n"
   });
 
   assertErrorCodes(await validateRepository(root), ["track-required-header"]);
@@ -22,10 +22,98 @@ test("missing required track headers fail", async () => {
 
 test("malformed length fails", async () => {
   const root = await createFixtureRepo({
-    track: "[ti:Example Track]\n[ar:Example Artist]\n[length:00:99]\n[00:00.00]x\n"
+    track: "[ti:Example Track]\n[ar:Example Artist]\n[length:00:99]\n[lang:en]\n[langs:en]\n[00:00.00]x\n"
   });
 
   assertErrorCodes(await validateRepository(root), ["track-length-format"]);
+});
+
+test("missing language headers fail", async () => {
+  const root = await createFixtureRepo({
+    track: "[ti:Example Track]\n[ar:Example Artist]\n[length:00:10]\n[00:00.00]x\n"
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-required-header", "track-required-header"]);
+  assert.deepEqual(errors.map((error) => error.message), [
+    "Track must include non-empty [lang:] metadata",
+    "Track must include non-empty [langs:] metadata"
+  ]);
+});
+
+test("empty language headers fail as missing metadata", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:]",
+      "[langs:]",
+      "[00:00.00]x",
+      ""
+    ].join("\n")
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-required-header", "track-required-header"]);
+  assert.deepEqual(errors.map((error) => error.message), [
+    "Track must include non-empty [lang:] metadata",
+    "Track must include non-empty [langs:] metadata"
+  ]);
+});
+
+test("track languages must include the primary language", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:ja]",
+      "[langs:en]",
+      "[00:00.00]例",
+      ""
+    ].join("\n")
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-language-coverage"]);
+  assert.match(errors[0].message, /missing: ja$/u);
+});
+
+test("track languages must cover the primary and inline translation languages", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:ja]",
+      "[langs:ja]",
+      "[00:00.00]例",
+      "[>en]Example",
+      ""
+    ].join("\n")
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-language-coverage"]);
+  assert.match(errors[0].message, /missing: en$/u);
+});
+
+test("track language coverage is case-insensitive and allows extra languages", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:JA]",
+      "[langs:fr,ja,EN]",
+      "[00:00.00]例",
+      "[>en]Example",
+      ""
+    ].join("\n")
+  });
+
+  assert.deepEqual(await validateRepository(root), []);
 });
 
 test("duplicate alias across artists fails", async () => {
@@ -46,6 +134,8 @@ test("duplicate track title and length for the same artist fails", async () => {
     "[ti: example track ]",
     "[ar:Example Artist]",
     "[length:00:11]",
+    "[lang:en]",
+    "[langs:en]",
     "[00:00.00]x",
     ""
   ].join("\n"));
@@ -96,6 +186,8 @@ function validTrack() {
     "[ti:Example Track]",
     "[ar:Example Artist]",
     "[length:00:10]",
+    "[lang:en]",
+    "[langs:en]",
     "[00:00.00]x",
     ""
   ].join("\n");

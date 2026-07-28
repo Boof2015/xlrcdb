@@ -20,9 +20,53 @@ test("valid incoming file passes", async () => {
 
 test("incoming missing required headers fails", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-required-"));
-  await writeIncoming(root, "missing.xlrc", "[ti:Example Track]\n[ar:Example Artist]\n[00:00.00]x\n");
+  await writeIncoming(
+    root,
+    "missing.xlrc",
+    "[ti:Example Track]\n[ar:Example Artist]\n[lang:en]\n[langs:en]\n[00:00.00]x\n"
+  );
 
   assertErrorCodes(await validateIncoming(root), ["incoming-required-header"]);
+});
+
+test("incoming language headers are required", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-language-required-"));
+  await writeIncoming(
+    root,
+    "missing-language.xlrc",
+    "[ti:Example Track]\n[ar:Example Artist]\n[length:00:10]\n[00:00.00]x\n"
+  );
+
+  const errors = await validateIncoming(root);
+  assertErrorCodes(errors, ["incoming-required-header", "incoming-required-header"]);
+  assert.deepEqual(errors.map((error) => error.message), [
+    "Incoming track must include non-empty [lang:] metadata",
+    "Incoming track must include non-empty [langs:] metadata"
+  ]);
+});
+
+test("incoming languages must cover the primary and inline translation languages", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-language-coverage-"));
+  await writeIncoming(root, "missing-translation-language.xlrc", validTrack({
+    lang: "ja",
+    langs: "ja",
+    line: "[00:00.00]例\n[>en]Example"
+  }));
+
+  const errors = await validateIncoming(root);
+  assertErrorCodes(errors, ["incoming-language-coverage"]);
+  assert.match(errors[0].message, /missing: en$/u);
+});
+
+test("incoming language coverage is case-insensitive and allows extra languages", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-language-extra-"));
+  await writeIncoming(root, "language-extra.xlrc", validTrack({
+    lang: "JA",
+    langs: "fr,ja,EN",
+    line: "[00:00.00]例\n[>en]Example"
+  }));
+
+  assert.deepEqual(await validateIncoming(root), []);
 });
 
 test("incoming malformed length fails", async () => {
@@ -94,6 +138,8 @@ function validTrack(options = {}) {
     `[ti:${options.title ?? "Example Track"}]`,
     `[ar:${options.artist ?? "Example Artist"}]`,
     `[length:${options.length ?? "00:10"}]`,
+    `[lang:${options.lang ?? "en"}]`,
+    `[langs:${options.langs ?? "en"}]`,
     options.line ?? "[00:00.00]x",
     ""
   ].join("\n");
