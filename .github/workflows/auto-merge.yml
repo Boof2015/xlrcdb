@@ -34,24 +34,28 @@ jobs:
     env:
       DAILY_MERGE_CAP: ${{ vars.DAILY_MERGE_CAP }}
     steps:
-      # Merge as the XLRCDB Bot GitHub App, never as a maintainer's account: these
-      # merges are automated and carry no human judgement about the lyrics, so they
-      # must not appear under a person's name as though that person reviewed them.
-      # GITHUB_TOKEN also 403s merging fork PRs that edit existing files.
-      #
-      # There is deliberately no fallback token. A missing or bad key fails this step
-      # loudly instead of silently leaving valid PRs unmerged on a green run.
-      - name: Mint bot token
-        id: bot
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
-          private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
-
       - name: Merge clean data PR
         uses: actions/github-script@v7
         with:
-          github-token: ${{ steps.bot.outputs.token }}
+          # Merge as the xlrcdb-bot machine account, never as a maintainer: these
+          # merges are automated and carry no human judgement about the lyrics, so
+          # they must not appear under a person's name as though that person
+          # reviewed them.
+          #
+          # This must be a classic PAT from that account, not a GitHub App token and
+          # not GITHUB_TOKEN. Both of those are scoped to this repository and get
+          # 403 "Resource not accessible by integration" merging pull requests
+          # opened from forks - which is nearly every real submission. A user token
+          # can merge any PR targeting a repo the account can write to. Verified:
+          # an App token merged a same-repo PR fine and failed on a fork PR.
+          #
+          # Fine-grained PATs cannot be used either: they only reach repositories
+          # owned by the selected resource owner, and the bot is a collaborator
+          # here rather than the owner.
+          #
+          # There is deliberately no fallback. An expired or missing token fails
+          # this step loudly instead of silently leaving valid PRs unmerged.
+          github-token: ${{ secrets.XLRCDB_BOT_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -105,10 +109,13 @@ jobs:
               return;
             }
 
-            // An App-token merge is not GITHUB_TOKEN, so the push to main does fire
+            // A user-token merge is not GITHUB_TOKEN, so the push to main does fire
             // Reconcile's push trigger on its own. Dispatch anyway as a backstop: the
             // reconcile-main concurrency group serializes the runs and a duplicate
             // no-ops. The cron is the last line of defence.
+            //
+            // This call needs classic scope `repo`; with `public_repo` it 403s. That
+            // is harmless - the catch below logs it and the push trigger already ran.
             try {
               await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: "reconcile.yml", ref: "main" });
               core.info("Dispatched Reconcile.");

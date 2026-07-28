@@ -104,29 +104,47 @@ will silently stop updating.
 
 ## Bot Identity
 
-Merges are performed by the **XLRCDB Bot** GitHub App, not by a maintainer's account. This is
+Merges are performed by the **`xlrcdb-bot`** machine account, not by a maintainer. This is
 deliberate: merges are automated and carry no human judgement about the lyrics, so they must
 not appear under a person's name as though that person reviewed and approved them.
 
 ### Setup
 
-1. Create a GitHub App owned by the repository owner. Disable webhooks.
-2. Repository permissions: **Contents: Read & write**, **Pull requests: Read & write**,
-   **Actions: Read & write** (needed for the `createWorkflowDispatch` call that kicks
-   Reconcile), Metadata: Read.
-3. Install it on this repository only, then generate a private key.
-4. Add the repository variable `XLRCDB_BOT_APP_ID` and the repository secret
-   `XLRCDB_BOT_PRIVATE_KEY`.
-5. If `main` is protected, add the App to the bypass list, or merges will 403.
+1. Register a dedicated GitHub account (`xlrcdb-bot`) with its own email and 2FA.
+2. Add it to this repository as a collaborator with **Write** access, and accept the invite
+   from that account.
+3. From that account, create a **classic** personal access token with the `public_repo`
+   scope. Set a long expiry and a calendar reminder before it lapses.
+4. Store it as the repository secret `XLRCDB_BOT_TOKEN`.
 
-`Auto-merge` mints a short-lived installation token from these at the start of each run. There
-is deliberately **no fallback to `GITHUB_TOKEN`**: if the App is misconfigured or the key is
-missing, the workflow fails loudly rather than silently leaving valid PRs unmerged.
+### Why a classic PAT and not something better
 
-Because an App token is not `GITHUB_TOKEN`, merges made with it do trigger downstream
-workflows, so Reconcile's push trigger fires on its own. The explicit dispatch in `Auto-merge`
-is kept as a backstop; a duplicate Reconcile run is serialized by the concurrency group and
-no-ops.
+This is the constraint that drives the whole design, so it is worth recording:
+
+- **`GITHUB_TOKEN`** and **GitHub App installation tokens** are both scoped to this
+  repository. Merging a pull request opened from a *fork* returns
+  `403 Resource not accessible by integration`, because the token has no standing on the
+  contributor's fork. Nearly every real submission is a fork PR, so this rules both out.
+  This was verified empirically: an App token merged a same-repo PR successfully and failed
+  on a fork PR from the same installation.
+- **Fine-grained PATs** only reach repositories owned by the token's selected resource owner.
+  The bot is a collaborator here, not the owner, so this repository is not selectable at all.
+- **A classic PAT** is a user token, so it can merge any pull request targeting a repository
+  the account can write to, forks included.
+
+The usual objection to classic PATs is their breadth, which does not bite here: the bot
+account is a collaborator on this repository only, so `public_repo` reaches exactly one repo.
+
+The real cost is expiry. When the token lapses, merging stops. There is deliberately **no
+fallback token** — `Auto-merge` fails loudly instead of quietly falling back to a token that
+cannot merge fork PRs and leaving valid submissions to rot on a green run.
+
+### Notes
+
+- The post-merge `createWorkflowDispatch` needs the classic `repo` scope; with `public_repo`
+  it logs a 403 warning. That is harmless. A user-token merge is not `GITHUB_TOKEN`, so the
+  push to `main` already fired Reconcile's push trigger, and the cron sits behind that.
+- If `main` is ever protected, give `xlrcdb-bot` permission to merge, or merges will 403.
 
 ## Handling a Takedown
 
