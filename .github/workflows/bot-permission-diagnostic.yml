@@ -2,53 +2,67 @@ name: Bot Permission Diagnostic
 
 # TEMPORARY - delete once it has answered.
 #
-# Distinguishes "the installation was never granted contents/pull_requests write"
-# from "it was granted them and the 403 came from somewhere else".
+# The previous run gave contradictory signals: a token scoped to
+# contents+pull_requests write minted fine, yet the merge endpoint 403'd asking
+# for contents=write. Exactly one of those is misleading. This run settles it.
 #
-# Step 1 asks for an installation token scoped to exactly the two permissions the
-# merge call needs. create-github-app-token fails outright if the installation
-# does not hold them, naming the gap.
+# CONTROL: ask for a permission the App was never granted (administration).
+#   fails  -> the action really does validate, so the earlier mint meant something
+#   succeeds -> the action does NOT validate, and the earlier mint proved nothing
 #
-# Step 2 probes the real merge endpoint against a CLOSED pull request. That can
-# never merge anything, so it is safe, and the status code separates the cases:
-#   403 "Resource not accessible by integration" -> permission genuinely missing
-#   405 "Pull Request is not mergeable"          -> permissions are FINE
-# The x-accepted-github-permissions header names what GitHub actually wanted.
+# REAL WRITE: mint unrestricted and actually use contents:write by creating and
+# deleting a throwaway ref. Creating a branch triggers no workflows here (Check is
+# pull_request only, Reconcile is push-to-main only), so this is inert.
 on:
   workflow_dispatch:
-    inputs:
-      closed_pr:
-        description: A CLOSED pull request number to probe against
-        required: true
-        default: "21"
 
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Mint token scoped to merge permissions
+      - name: CONTROL - request a permission the App should not hold
+        id: control
+        continue-on-error: true
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
+          private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
+          permission-administration: write
+
+      - name: Interpret control
+        run: |
+          echo "control step outcome: ${{ steps.control.outcome }}"
+          if [ "${{ steps.control.outcome }}" = "success" ]; then
+            echo ">> Action does NOT validate requested permissions."
+            echo ">> The earlier 'installation DOES hold contents write' claim was WORTHLESS."
+          else
+            echo ">> Action DOES validate. Installation genuinely holds what it minted."
+          fi
+
+      - name: Mint unrestricted token
         id: bot
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
           private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
-          permission-contents: write
-          permission-pull-requests: write
 
-      - name: Probe merge endpoint on a closed PR
+      - name: REAL TEST - exercise contents:write via a throwaway ref
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
-          PR: ${{ inputs.closed_pr }}
         run: |
-          echo "Scoped token minted -> installation DOES hold contents+pull_requests write."
-          echo "Probing merge endpoint on closed PR #$PR ..."
+          SHA=$(gh api /repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)
+          echo "main is at $SHA"
           set +e
-          gh api -X PUT "/repos/${{ github.repository }}/pulls/$PR/merge" \
-            -f merge_method=squash -i > probe.txt 2>&1
+          gh api -X POST /repos/${{ github.repository }}/git/refs \
+            -f ref=refs/heads/bot-perm-test -f sha="$SHA" -i > create.txt 2>&1
+          rc=$?
           set -e
-          echo "--- status line ---"
-          head -1 probe.txt
-          echo "--- permissions GitHub expected ---"
-          grep -i 'x-accepted-github-permissions' probe.txt || echo "(header absent)"
-          echo "--- message ---"
-          grep -i '"message"' probe.txt || tail -3 probe.txt
+          echo "--- create ref status ---"
+          head -1 create.txt
+          grep -i '"message"' create.txt || true
+          if [ $rc -eq 0 ]; then
+            echo ">> contents:write CONFIRMED. Cleaning up."
+            gh api -X DELETE /repos/${{ github.repository }}/git/refs/heads/bot-perm-test
+          else
+            echo ">> contents:write DENIED - the installation lacks it."
+          fi
