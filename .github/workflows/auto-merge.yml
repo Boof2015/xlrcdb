@@ -1,13 +1,15 @@
 name: Auto-merge
 
 # A green Check means the PR is a clean, valid data submission (classify gates
-# scope and validate gates content). Merge it; the Reconcile workflow then
-# normalizes and regenerates the index on main. Runs as workflow_run so it has
-# upstream write permissions even for pull requests opened from forks.
+# scope, validate gates format). Merge it; the Reconcile workflow then normalizes
+# and regenerates the index on main. Runs as workflow_run so it has upstream write
+# permissions even for pull requests opened from forks.
 #
-# The only gate is a content-neutral per-author daily merge cap (spam throttle,
-# not content curation). Maintainers are exempt. Tune via the DAILY_MERGE_CAP
-# repository variable (default 30).
+# This is format validation only. Nothing here reviews the lyrics or checks who
+# holds rights to them, and a merge is not an endorsement of the content (see
+# LEGAL.md). The only other gate is a content-neutral per-author daily merge cap
+# (spam throttle, not content curation). Maintainers are exempt. Tune via the
+# DAILY_MERGE_CAP repository variable (default 30).
 on:
   workflow_run:
     workflows:
@@ -32,13 +34,24 @@ jobs:
     env:
       DAILY_MERGE_CAP: ${{ vars.DAILY_MERGE_CAP }}
     steps:
+      # Merge as the XLRCDB Bot GitHub App, never as a maintainer's account: these
+      # merges are automated and carry no human judgement about the lyrics, so they
+      # must not appear under a person's name as though that person reviewed them.
+      # GITHUB_TOKEN also 403s merging fork PRs that edit existing files.
+      #
+      # There is deliberately no fallback token. A missing or bad key fails this step
+      # loudly instead of silently leaving valid PRs unmerged on a green run.
+      - name: Mint bot token
+        id: bot
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
+          private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
+
       - name: Merge clean data PR
         uses: actions/github-script@v7
         with:
-          # GITHUB_TOKEN 403s merging fork PRs that edit existing files. Use a PAT/App
-          # token (XLRCDB_BOT_TOKEN) when set; fall back to GITHUB_TOKEN, which still
-          # handles new-track submissions, until the secret is added.
-          github-token: ${{ secrets.XLRCDB_BOT_TOKEN || github.token }}
+          github-token: ${{ steps.bot.outputs.token }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -92,9 +105,10 @@ jobs:
               return;
             }
 
-            // A GITHUB_TOKEN merge does not trigger Reconcile's push event (Actions
-            // anti-recursion), so kick it explicitly. workflow_dispatch is exempt
-            // from that limitation; the cron is still there as a backstop.
+            // An App-token merge is not GITHUB_TOKEN, so the push to main does fire
+            // Reconcile's push trigger on its own. Dispatch anyway as a backstop: the
+            // reconcile-main concurrency group serializes the runs and a duplicate
+            // no-ops. The cron is the last line of defence.
             try {
               await github.rest.actions.createWorkflowDispatch({ owner, repo, workflow_id: "reconcile.yml", ref: "main" });
               core.info("Dispatched Reconcile.");

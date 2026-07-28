@@ -1,49 +1,24 @@
 # xlrcdb
-Official community lyrics database for the XLRC format
 
-xlrcdb stores XLRC lyric files and generated lookup indexes as plain files in
-this repository. The repository is designed to be served as static files and
-checked by CI.
+The community lyrics database for the [XLRC format](https://www.npmjs.com/package/@boof2015/xlrc).
 
-## Repository Layout
+XLRC is a plain-text lyric format with timing, furigana, translations, and per-word
+timestamps. xlrcdb collects `.xlrc` files, gives every track a stable ID, and publishes a
+generated index that apps can look tracks up in by artist, title, and duration.
 
-- `artists/` contains canonical artist records as TOML.
-- `tracks/` contains canonical XLRC files.
-- `incoming/` is the temporary holding area for raw submitted `.xlrc` files.
-- `index/` is generated from `artists/` and `tracks/`.
-- `scripts/` contains the local maintenance CLIs.
+Everything here is static files. There is no server and no account required to read it.
 
-## Local Checks
+## Find Lyrics
 
-Install dependencies once:
+Search the database at **[astramusic.dev/xlrcdb](https://astramusic.dev/xlrcdb/)**.
 
-```sh
-npm install
-```
+## Use It In Your App
 
-Run the same check used by CI:
-
-```sh
-npm run check
-```
-
-This runs tests, validates source data, validates any pending `incoming/`
-submissions, regenerates `index/`, and fails if the generated index differs from
-what is committed.
-
-## Static Data Source
-
-xlrcdb is intended to be served directly from GitHub Pages. 
-
-The default project-site URL is:
-
-```text
-https://boof2015.github.io/xlrcdb/
-```
-
-Clients using `@boof2015/xlrc` should pass that URL as the lookup source:
+The database is served from GitHub Pages. Point the `@boof2015/xlrc` client at it:
 
 ```ts
+import { lookup } from "@boof2015/xlrc";
+
 await lookup({
   artist: "Artist Name",
   title: "Track Title",
@@ -52,75 +27,46 @@ await lookup({
 });
 ```
 
+`length` is the track duration in seconds. It is required — xlrcdb matches on artist, title,
+and duration together so that different recordings of the same song stay distinct.
 
-## Adding Lyrics Locally
+## Contribute
 
-For contributor-facing instructions, see [CONTRIBUTING.md](CONTRIBUTING.md).
+**Use the editor: [astramusic.dev/xlrcdb/#/submit](https://astramusic.dev/xlrcdb/#/submit)**
 
-For the current v0 workflow, add raw contribution files under `incoming/`:
+The editor is the recommended way to contribute, and it is much easier than editing files by
+hand. It writes valid XLRC for you, fills in the headers xlrcdb requires, checks the file
+before you send it, and opens the pull request on your behalf. It also has a page for editing
+artist names and aliases.
 
-```text
-incoming/my-track.xlrc
-```
+You do not need to clone the repository, install anything, or know the format.
 
-Each incoming XLRC file must include:
+If you would rather work in git directly, [CONTRIBUTING.md](CONTRIBUTING.md) covers the manual
+path, the format requirements, and how the pipeline handles your submission.
 
-```text
-[ar:Artist Name]
-[ti:Track Title]
-[length:mm:ss]
-```
+### Before You Contribute
 
-Then normalize the repository:
+**Only submit lyrics you have the rights to.** By opening a pull request you are stating that
+you own the content or have permission to publish it.
 
-```sh
-npm run normalize
-```
+xlrcdb does not check this and cannot check this. Submissions are merged automatically once
+the format validates — no person reads them, and a merge is not a review, an approval, or any
+statement about who owns what.
 
-Normalization promotes incoming files into canonical sharded paths under
-`artists/` and `tracks/`, creates artist records when needed, removes processed
-incoming files, and regenerates `index/`.
+If a takedown lands on something you submitted and it is upheld, it counts as a strike against
+your account. Three strikes is a permanent block. See [LEGAL.md](LEGAL.md) for the full policy.
 
-After normalizing, run:
+## Reporting Content
 
-```sh
-npm run check
-```
+If you hold the rights to something in xlrcdb and want it removed, email
+**xlrcdb-dmca@novaml.ai** with the repository path or index URL of the file and proof that you
+are entitled to make the request.
 
-To validate incoming files without moving or rewriting anything, run:
+[LEGAL.md](LEGAL.md) lists exactly what to include and what happens next.
 
-```sh
-npm run validate:incoming
-```
+## More
 
-## Maintainer Workflow
-
-The `Check` GitHub Actions workflow runs automatically on pull requests and
-pushes to `main`.
-
-On pull requests, `Check` also verifies that PRs are data submissions. A normal
-submission PR may only change xlrcdb data paths: `incoming/`, `artists/`,
-`tracks/`, and `index/`. Backend, workflow, package, and documentation changes
-intentionally fail this check so they require explicit maintainer review.
-
-The PR check is deliberately gated:
-
-1. Classify the PR as a data submission, normalized data, manual review, or
-   invalid mixed change.
-2. Validate raw `incoming/*.xlrc` files for data submissions.
-3. Run normalization in a temporary dry-run copy for data submissions.
-4. Run the full repository check.
-
-The check workflow reports and fails. A follow-up comment workflow updates a
-single bot comment with the gate report when a PR check fails. It does not close
-or merge pull requests.
-
-After a raw same-repository `incoming/*.xlrc` PR passes `Check`, the
-`Normalize Incoming` workflow runs automatically. It refuses the base branch,
-requires a raw incoming data submission, validates the incoming files, runs a
-dry-run normalization, commits generated changes back to that branch, runs the
-full check on the normalized commit, and publishes a commit status for the PR. It
-does not merge pull requests.
-
-Maintainers can also run `Normalize Incoming` manually with a target branch name
-when a branch needs to be reprocessed.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — format requirements and the manual submission path
+- [LEGAL.md](LEGAL.md) — content policy, contributor rights terms, takedowns
+- [LICENSE](LICENSE) — MIT, tooling only; lyric content is not covered
+- [docs/MAINTAINERS.md](docs/MAINTAINERS.md) — repository layout, local checks, CI internals
