@@ -114,7 +114,7 @@ not appear under a person's name as though that person reviewed and approved the
 2. Add it to this repository as a collaborator with **Write** access, and accept the invite
    from that account.
 3. From that account, create a **classic** personal access token with the `public_repo`
-   scope. Set a long expiry and a calendar reminder before it lapses.
+   **and `workflow`** scopes. Set a long expiry and a calendar reminder before it lapses.
 4. Store it as the repository secret `XLRCDB_BOT_TOKEN`.
 
 ### Why a classic PAT and not something better
@@ -138,6 +138,29 @@ account is a collaborator on this repository only, so `public_repo` reaches exac
 The real cost is expiry. When the token lapses, merging stops. There is deliberately **no
 fallback token** — `Auto-merge` fails loudly instead of quietly falling back to a token that
 cannot merge fork PRs and leaving valid submissions to rot on a green run.
+
+### Why the token needs `workflow` scope
+
+The bot never edits workflow files, and CI would refuse a PR that tried: `Check` classifies
+anything touching `.github/` as `invalid-mixed` or `manual-review`, neither of which passes,
+so `Auto-merge` cannot fire on such a PR.
+
+The scope is required anyway because of how GitHub guards workflow files. When a submission's
+branch is behind `main` and `.github/workflows/` has changed in between, the head commit still
+carries the *old* workflow files. GitHub compares those against the base, reads the merge as
+touching workflows, and rejects it:
+
+```text
+refusing to allow a Personal Access Token to create or update workflow
+`.github/workflows/auto-merge.yml` without `workflow` scope
+```
+
+The merge would not actually change any workflow. The guard is conservative and fires on the
+stale copy alone. Without the scope, submissions break sporadically — only for contributors
+whose forks are behind, and only after a workflow change — which is a miserable thing to
+debug from the symptom.
+
+Classic PAT scopes can be edited in place, so adding this does not invalidate the token.
 
 ### Notes
 
