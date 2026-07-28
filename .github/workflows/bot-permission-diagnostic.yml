@@ -1,68 +1,34 @@
 name: Bot Permission Diagnostic
 
-# TEMPORARY - delete once it has answered.
-#
-# The previous run gave contradictory signals: a token scoped to
-# contents+pull_requests write minted fine, yet the merge endpoint 403'd asking
-# for contents=write. Exactly one of those is misleading. This run settles it.
-#
-# CONTROL: ask for a permission the App was never granted (administration).
-#   fails  -> the action really does validate, so the earlier mint meant something
-#   succeeds -> the action does NOT validate, and the earlier mint proved nothing
-#
-# REAL WRITE: mint unrestricted and actually use contents:write by creating and
-# deleting a throwaway ref. Creating a branch triggers no workflows here (Check is
-# pull_request only, Reconcile is push-to-main only), so this is inert.
+# TEMPORARY. Probes whether the App can merge a NON-FORK PR, to isolate whether
+# the 403 on PR #21 was fork-specific. contents:write is already proven working.
 on:
   workflow_dispatch:
+    inputs:
+      pr:
+        description: PR number to attempt merging
+        required: true
 
 jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: CONTROL - request a permission the App should not hold
-        id: control
-        continue-on-error: true
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
-          private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
-          permission-administration: write
-
-      - name: Interpret control
-        run: |
-          echo "control step outcome: ${{ steps.control.outcome }}"
-          if [ "${{ steps.control.outcome }}" = "success" ]; then
-            echo ">> Action does NOT validate requested permissions."
-            echo ">> The earlier 'installation DOES hold contents write' claim was WORTHLESS."
-          else
-            echo ">> Action DOES validate. Installation genuinely holds what it minted."
-          fi
-
-      - name: Mint unrestricted token
+      - name: Mint bot token
         id: bot
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
           private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
 
-      - name: REAL TEST - exercise contents:write via a throwaway ref
+      - name: Attempt merge
         env:
           GH_TOKEN: ${{ steps.bot.outputs.token }}
+          PR: ${{ inputs.pr }}
         run: |
-          SHA=$(gh api /repos/${{ github.repository }}/git/ref/heads/main --jq .object.sha)
-          echo "main is at $SHA"
           set +e
-          gh api -X POST /repos/${{ github.repository }}/git/refs \
-            -f ref=refs/heads/bot-perm-test -f sha="$SHA" -i > create.txt 2>&1
-          rc=$?
+          gh api -X PUT "/repos/${{ github.repository }}/pulls/$PR/merge" \
+            -f merge_method=squash -i > out.txt 2>&1
           set -e
-          echo "--- create ref status ---"
-          head -1 create.txt
-          grep -i '"message"' create.txt || true
-          if [ $rc -eq 0 ]; then
-            echo ">> contents:write CONFIRMED. Cleaning up."
-            gh api -X DELETE /repos/${{ github.repository }}/git/refs/heads/bot-perm-test
-          else
-            echo ">> contents:write DENIED - the installation lacks it."
-          fi
+          echo "--- status ---"; head -1 out.txt
+          echo "--- expected perms ---"; grep -i 'x-accepted-github' out.txt || echo "(none)"
+          echo "--- body ---"; grep -i '"message"\|"merged"' out.txt || tail -2 out.txt
