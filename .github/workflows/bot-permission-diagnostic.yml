@@ -1,0 +1,54 @@
+name: Bot Permission Diagnostic
+
+# TEMPORARY - delete once it has answered.
+#
+# Distinguishes "the installation was never granted contents/pull_requests write"
+# from "it was granted them and the 403 came from somewhere else".
+#
+# Step 1 asks for an installation token scoped to exactly the two permissions the
+# merge call needs. create-github-app-token fails outright if the installation
+# does not hold them, naming the gap.
+#
+# Step 2 probes the real merge endpoint against a CLOSED pull request. That can
+# never merge anything, so it is safe, and the status code separates the cases:
+#   403 "Resource not accessible by integration" -> permission genuinely missing
+#   405 "Pull Request is not mergeable"          -> permissions are FINE
+# The x-accepted-github-permissions header names what GitHub actually wanted.
+on:
+  workflow_dispatch:
+    inputs:
+      closed_pr:
+        description: A CLOSED pull request number to probe against
+        required: true
+        default: "21"
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint token scoped to merge permissions
+        id: bot
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.XLRCDB_BOT_APP_ID }}
+          private-key: ${{ secrets.XLRCDB_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Probe merge endpoint on a closed PR
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          PR: ${{ inputs.closed_pr }}
+        run: |
+          echo "Scoped token minted -> installation DOES hold contents+pull_requests write."
+          echo "Probing merge endpoint on closed PR #$PR ..."
+          set +e
+          gh api -X PUT "/repos/${{ github.repository }}/pulls/$PR/merge" \
+            -f merge_method=squash -i > probe.txt 2>&1
+          set -e
+          echo "--- status line ---"
+          head -1 probe.txt
+          echo "--- permissions GitHub expected ---"
+          grep -i 'x-accepted-github-permissions' probe.txt || echo "(header absent)"
+          echo "--- message ---"
+          grep -i '"message"' probe.txt || tail -3 probe.txt
