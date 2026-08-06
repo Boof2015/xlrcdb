@@ -23,8 +23,12 @@ permissions:
   issues: write
   actions: write
 
+# Serialized across every PR, not per head SHA. Check only ever sees its own branch, so two
+# submissions of the same track pass independently; the pre-merge revalidation below is what
+# catches that, and it is only sound if one merge finishes (and lands on main) before the next
+# one revalidates.
 concurrency:
-  group: auto-merge-${{ github.event.workflow_run.head_sha }}
+  group: auto-merge
   cancel-in-progress: false
 
 jobs:
@@ -34,6 +38,21 @@ jobs:
     env:
       DAILY_MERGE_CAP: ${{ vars.DAILY_MERGE_CAP }}
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Merge clean data PR
         uses: actions/github-script@v7
         with:
@@ -101,6 +120,28 @@ jobs:
               }
             }
 
+            // Check only ever sees the PR's own branch, so two PRs submitting the same track
+            // both go green independently and main may have moved since either ran. Replay
+            // this PR's incoming files against main as it stands right now. The concurrency
+            // group serializes auto-merges, so "right now" is stable for the length of this
+            // job.
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner, repo, pull_number: pullNumber, per_page: 100
+            });
+            const incomingFiles = files
+              .filter((file) => file.status !== "removed")
+              .map((file) => file.filename)
+              .filter((name) => name.startsWith("incoming/") && name.endsWith(".xlrc"));
+
+            const staleReport = incomingFiles.length > 0
+              ? revalidateAgainstMain(pullNumber, incomingFiles)
+              : undefined;
+            if (staleReport) {
+              core.warning(`PR #${pullNumber} does not validate against current main; leaving it open.`);
+              await notifyStale(pullNumber, staleReport);
+              return;
+            }
+
             try {
               await github.rest.pulls.merge({ owner, repo, pull_number: pullNumber, merge_method: "squash" });
               core.info(`Merged PR #${pullNumber}.`);
@@ -123,15 +164,55 @@ jobs:
               core.warning(`Could not dispatch Reconcile (cron will catch it): ${error.message}`);
             }
 
+            // Re-run validate:incoming with this PR's submissions applied on top of current
+            // main. Returns the failure output, or undefined when the PR is still clean.
+            function revalidateAgainstMain(number, paths) {
+              const { execFileSync } = require("node:child_process");
+              const exec = (command, args) => execFileSync(command, args, { encoding: "utf8" });
+
+              try {
+                exec("git", ["fetch", "--no-tags", "--depth=1", "origin", `refs/pull/${number}/head`]);
+                // Additive: main's own incoming/ is normally empty because Reconcile drains
+                // it, but anything still pending there is validated alongside these files.
+                exec("git", ["checkout", "FETCH_HEAD", "--", ...paths]);
+              } catch (error) {
+                // Could not set the check up at all. That is an infrastructure problem, not a
+                // finding about the submission, so it must not silently block a valid PR.
+                core.warning(`Could not stage PR #${number} for revalidation: ${error.message}`);
+                return undefined;
+              }
+
+              try {
+                exec("npm", ["run", "--silent", "validate:incoming"]);
+                return undefined;
+              } catch (error) {
+                return `${error.stdout ?? ""}${error.stderr ?? ""}`.trim() || "validate:incoming failed";
+              }
+            }
+
             // Leave one comment (and no duplicates) when a PR is held by the cap.
             async function notifyCap(number, author, dailyCap) {
-              const marker = "<!-- xlrcdb-rate-limit -->";
+              return notifyOnce(number, "<!-- xlrcdb-rate-limit -->", `Thanks @${author}! You've reached the automatic daily submission limit (${dailyCap}). This PR is valid and will be merged by a maintainer, or it will auto-merge once your recent submissions roll past 24 hours. This is a spam throttle, not a review of the lyrics.`);
+            }
+
+            // Leave one comment when a PR passed Check but no longer fits main - almost always
+            // because another PR added the same track first.
+            async function notifyStale(number, report) {
+              return notifyOnce(number, "<!-- xlrcdb-stale-check -->", [
+                "This PR passed `Check`, but re-validating it against the current `main` fails, so it was not merged automatically.",
+                "",
+                "This usually means another pull request added the same track first. `Check` only sees its own branch, so two submissions of one song can both go green independently.",
+                "",
+                "```",
+                report.slice(0, 4000),
+                "```",
+                "",
+                "If the track is already in the database, this PR can be closed. Otherwise, push a fix and `Check` will run again."
+              ].join("\n"));
+            }
+
+            async function notifyOnce(number, marker, body) {
               const existing = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
               if (existing.some((comment) => comment.body?.includes(marker))) return;
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: number,
-                body: `${marker}\nThanks @${author}! You've reached the automatic daily submission limit (${dailyCap}). This PR is valid and will be merged by a maintainer, or it will auto-merge once your recent submissions roll past 24 hours. This is a spam throttle, not a review of the lyrics.`
-              });
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body: `${marker}\n${body}` });
             }

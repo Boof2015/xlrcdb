@@ -40,6 +40,8 @@ Full policy, and how to report content, in [LEGAL.md](LEGAL.md).
 - Format length as `mm:ss`, with seconds below 60.
 - List the primary lyric language in both `[lang:]` and `[langs:]`, and include every
   inline translation language in `[langs:]`.
+- Use real ISO 639 / BCP 47 language codes.
+- Do not submit a track the database already has.
 - Put the file under `incoming/`.
 - Keep one track per `.xlrc` file.
 - Do not edit `artists/`, `tracks/`, or `index/` by hand for a normal lyric submission.
@@ -71,6 +73,23 @@ and inline `[>language]` translations. A Japanese track with English translation
 
 Additional languages are allowed for multilingual base lyrics. Language comparisons are
 case-insensitive, and the primary language does not have to appear first.
+
+Every tag must be a real language code — a two- or three-letter ISO 639 code, optionally with
+a script and region subtag (`ja-Latn`, `zh-Hans`, `es-419`). No language is off-limits: `id`
+(Indonesian) and `haw` (Hawaiian) are as welcome as `en`. What fails is a code that names no
+language at all, such as `xx` or `notalanguage`.
+
+### Duplicates
+
+One recording belongs in the database once. A submission is rejected as a duplicate when the
+artist, title, and length all match a track that already exists, or another file in the same
+submission. Punctuation and capitalisation in the artist and title are ignored for this
+comparison, so `for Revenge` and `For - Revenge` count as the same artist — spelling the name
+differently does not make a second copy of a song a new track.
+
+Before submitting, search the database for the track. If you believe a match is wrong — two
+genuinely different songs sharing an artist, title, and length — say so in the pull request
+and a maintainer will take a look.
 
 ### File Location
 

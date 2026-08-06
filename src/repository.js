@@ -2,6 +2,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parseXLRC, validateXLRC } from "@boof2015/xlrc";
 import { parse as parseToml } from "smol-toml";
+import { isValidLanguageTag } from "./languages.js";
 
 export const ARTIST_ID_PATTERN = /^art_[A-Za-z0-9_-]{10}$/;
 export const TRACK_ID_PATTERN = /^trk_[A-Za-z0-9_-]{10}$/;
@@ -10,6 +11,20 @@ const LENGTH_PATTERN = /^(\d+):([0-5]\d)$/;
 
 export function normalizeKey(value) {
   return value.normalize("NFKC").toLowerCase().replace(/\s+/gu, " ").trim();
+}
+
+// Deliberately looser than normalizeKey, and deliberately separate from it. normalizeKey backs
+// the artist alias index, where punctuation is meaningful and collapsing it would change which
+// aliases resolve to which artist. This key exists only to decide whether two submissions are
+// the same recording, where "For - Revenge" and "for Revenge" must not be treated as two
+// different artists just because one of them punctuated the name differently.
+export function matchKey(value) {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[\p{P}\p{S}]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
 }
 
 export function parseLengthSeconds(value) {
@@ -66,11 +81,26 @@ export function inspectLanguageMetadata(file) {
       .filter(([normalized]) => !declaredLanguages.has(normalized))
       .map(([, language]) => language);
 
+  // Every tag the file names, from all three sources, reported once each in the order a
+  // reader meets them: [lang:], then [langs:], then inline [>lang] translations.
+  const invalidLanguages = [];
+  const seenInvalid = new Set();
+  for (const language of [primaryLanguage, ...languages, ...requiredLanguages.values()]) {
+    const normalized = normalizeLanguageTag(language);
+    if (!language || seenInvalid.has(normalized) || isValidLanguageTag(language)) {
+      continue;
+    }
+
+    seenInvalid.add(normalized);
+    invalidLanguages.push(language);
+  }
+
   return {
     primaryLanguage,
     languages,
     missingHeaders,
-    missingLanguages
+    missingLanguages,
+    invalidLanguages
   };
 }
 
