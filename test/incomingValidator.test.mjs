@@ -69,6 +69,23 @@ test("incoming language coverage is case-insensitive and allows extra languages"
   assert.deepEqual(await validateIncoming(root), []);
 });
 
+test("incoming unknown language tags fail", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-language-invalid-"));
+  await writeIncoming(root, "bad-language.xlrc", validTrack({ lang: "xx", langs: "xx" }));
+
+  const errors = await validateIncoming(root);
+  assertErrorCodes(errors, ["incoming-language-invalid"]);
+  assert.match(errors[0].message, /unknown: xx$/u);
+});
+
+test("incoming uncommon but real languages pass", async () => {
+  // Indonesian. Regression guard for PRs #31 / #32, which were correctly tagged [lang:id].
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-language-real-"));
+  await writeIncoming(root, "indonesian.xlrc", validTrack({ lang: "id", langs: "id" }));
+
+  assert.deepEqual(await validateIncoming(root), []);
+});
+
 test("incoming malformed length fails", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-length-"));
   await writeIncoming(root, "bad-length.xlrc", validTrack({ length: "03:99" }));
@@ -98,6 +115,38 @@ test("incoming duplicate among submitted files fails", async () => {
   await writeIncoming(root, "two.xlrc", validTrack({ length: "00:11" }));
 
   assertErrorCodes(await validateIncoming(root), ["incoming-duplicate-track"]);
+});
+
+test("incoming duplicate under a differently punctuated artist fails", async () => {
+  // Exactly PRs #31 and #32: the same song submitted twice, spelled "For - Revenge" once and
+  // "for Revenge" the other time. Before matchKey these resolved to two new artist records and
+  // the id comparison called them unrelated, so both would have merged.
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-duplicate-artist-"));
+  await writeIncoming(root, "one.xlrc", validTrack({ artist: "For - Revenge", title: "Sadrah" }));
+  await writeIncoming(root, "two.xlrc", validTrack({ artist: "for Revenge", title: "Sadrah" }));
+
+  const errors = await validateIncoming(root);
+  assertErrorCodes(errors, ["incoming-duplicate-track"]);
+  assert.match(errors[0].message, /For - Revenge/u);
+});
+
+test("incoming duplicate of an existing track under a differently punctuated artist fails", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-duplicate-existing-artist-"));
+  await writeArtist(root, "art_5k3n9p2xq7", "for Revenge", ["for Revenge"]);
+  await writeTrack(root, "trk_a1b2c3d4e5", validTrack({ artist: "for Revenge", title: "Sadrah" }));
+  await writeIncoming(root, "dupe.xlrc", validTrack({ artist: "For - Revenge", title: "Sadrah" }));
+
+  const errors = await validateIncoming(root);
+  assertErrorCodes(errors, ["incoming-duplicate-track"]);
+  assert.match(errors[0].message, /already filed under "for Revenge"/u);
+});
+
+test("distinct titles under one artist are not duplicates", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-incoming-distinct-"));
+  await writeIncoming(root, "one.xlrc", validTrack({ title: "Track One" }));
+  await writeIncoming(root, "two.xlrc", validTrack({ title: "Track Two" }));
+
+  assert.deepEqual(await validateIncoming(root), []);
 });
 
 test("incoming validation is read-only", async () => {

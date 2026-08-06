@@ -5,6 +5,7 @@ import {
   buildAliasIndex,
   expectedShardedPath,
   inspectLanguageMetadata,
+  matchKey,
   normalizeKey,
   parseLengthSeconds,
   readArtistEntries,
@@ -148,7 +149,10 @@ function validateTracks(entries, aliasIndex, errors) {
       tracks.push({
         id,
         artistId: artistMatch.artist.id,
+        artistName: artistMatch.artist.canonicalName,
+        artistMatchKey: matchKey(artistMatch.artist.canonicalName),
         normalizedTitle: normalizeKey(title),
+        titleMatchKey: matchKey(title),
         title,
         lengthSeconds,
         filePath
@@ -174,7 +178,19 @@ function validateTrackLanguageMetadata(file, filePath, errors) {
     ));
   }
 
-  return metadata.missingHeaders.length === 0 && metadata.missingLanguages.length === 0;
+  if (metadata.invalidLanguages.length > 0) {
+    errors.push(validationError(
+      "track-language-invalid",
+      filePath,
+      `Track language tags must be real ISO 639 / BCP 47 codes; unknown: ${metadata.invalidLanguages.join(", ")}`
+    ));
+  }
+
+  return (
+    metadata.missingHeaders.length === 0 &&
+    metadata.missingLanguages.length === 0 &&
+    metadata.invalidLanguages.length === 0
+  );
 }
 
 function validateDuplicateTracks(tracks, errors) {
@@ -183,21 +199,38 @@ function validateDuplicateTracks(tracks, errors) {
       const left = tracks[leftIndex];
       const right = tracks[rightIndex];
 
-      if (
-        left.artistId === right.artistId &&
-        left.normalizedTitle === right.normalizedTitle &&
-        Math.abs(left.lengthSeconds - right.lengthSeconds) <= 1
-      ) {
-        errors.push(
-          validationError(
-            "track-duplicate",
-            right.filePath,
-            `Duplicate track "${right.title}" for ${right.artistId}; conflicts with ${left.filePath}`
-          )
-        );
+      if (!isSameRecording(left, right)) {
+        continue;
       }
+
+      // Naming both artist spellings matters when the match was made across two separate
+      // artist records: without it the report claims a duplicate for two rows that, on the
+      // face of them, have different artists.
+      const artistDetail = left.artistId === right.artistId
+        ? right.artistId
+        : `${right.artistId} ("${right.artistName}") / ${left.artistId} ("${left.artistName}")`;
+
+      errors.push(
+        validationError(
+          "track-duplicate",
+          right.filePath,
+          `Duplicate track "${right.title}" for ${artistDetail}; conflicts with ${left.filePath}`
+        )
+      );
     }
   }
+}
+
+// Same artist, same title, same length to within a second. Compared on match keys rather than
+// ids so that a track filed under a near-identical duplicate artist record still collides -
+// two submissions of one song that spell the artist differently produce two artist records,
+// and an id comparison would call them unrelated.
+export function isSameRecording(left, right) {
+  return (
+    left.artistMatchKey === right.artistMatchKey &&
+    left.titleMatchKey === right.titleMatchKey &&
+    Math.abs(left.lengthSeconds - right.lengthSeconds) <= 1
+  );
 }
 
 function requiredHeader(value, header, filePath, errors) {

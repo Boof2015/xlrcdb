@@ -58,6 +58,59 @@ lyric submission. **Changes to this repository's own docs or workflows — inclu
 that added this file — will fail `Check` and must be merged by hand.** That is the design
 working, not a bug to fix.
 
+## Language and Duplicate Rules
+
+Two checks that are xlrcdb's own rather than the XLRC format's, so neither is enforced by the
+parser. Both live in `inspectLanguageMetadata` / the duplicate passes and are surfaced by
+`npm run validate` and `npm run validate:incoming` alike.
+
+### Language tags
+
+| Code | Meaning |
+| --- | --- |
+| `track-language-invalid` / `incoming-language-invalid` | A `[lang:]`, `[langs:]`, or inline `[>lang]` tag names no real language |
+
+Checked in [`src/languages.js`](../src/languages.js) against the ICU/CLDR registry that ships
+with Node — `Intl.getCanonicalLocales` for shape, then `Intl.DisplayNames` with
+`fallback: "none"`, which returns `undefined` for an unassigned subtag. There is deliberately
+**no allowlist**: the upstream spec forbids the parser from hard-coding language logic
+([SPEC.md](../node_modules/@boof2015/xlrc/SPEC.md)), and a checked-in table would drift.
+
+The shape accepted is `language[-script][-region]`. Extension and private-use subtags
+(`en-u-ca-gregory`, `x-private`) are rejected — they are not language identifiers for lyrics —
+as are tags that name no single language (`und`, `mul`, `zxx`, `mis`) and the "unknown"
+placeholders (`Zzzz`, `ZZ`).
+
+This restricts nothing about *which* real languages are welcome. `id` and `haw` pass; `xx` and
+`notalanguage` do not.
+
+`LANGUAGE_REGISTRY_AVAILABLE` guards the whole check. On a Node built with small-icu the
+registry answers "unknown" for valid tags, so validation degrades to accepting everything
+rather than rejecting every submission. `test/languages.test.mjs` asserts the flag is true, so
+a small-icu runner fails the suite loudly instead of passing vacuously.
+
+### Duplicates
+
+| Code | Meaning |
+| --- | --- |
+| `track-duplicate` | Two committed tracks are the same recording |
+| `incoming-duplicate-track` | A submission matches an existing track, or another file in the same submission |
+
+Two tracks are the same recording when the artist and title match and the lengths are within
+one second. The comparison uses `matchKey` ([`src/repository.js`](../src/repository.js)),
+which strips punctuation and symbols on top of what `normalizeKey` does, so `for Revenge` and
+`For - Revenge` compare equal.
+
+`matchKey` is deliberately **separate from `normalizeKey`** and must stay that way.
+`normalizeKey` backs the artist alias index, where punctuation distinguishes one alias from
+another; loosening it would change alias resolution and could raise `artist-alias-collision`
+on existing records.
+
+Matching on the key rather than on `artistId` is the point: a song submitted twice with the
+artist punctuated differently creates *two* artist records, and an id comparison calls those
+two tracks unrelated. That is how PRs #31 and #32 — one song, `for Revenge` and
+`For - Revenge` — could both have merged.
+
 ## CI Pipeline
 
 Three workflows, in order. A fourth (`Comment PR Report`) only reports.
@@ -81,11 +134,33 @@ consistency is enforced on `main` by Reconcile, not on PRs.
 A `workflow_run` job on `Check` completion, so it holds write permissions even for fork PRs
 without ever checking out fork code. It resolves the PR (by head SHA, since
 `workflow_run.pull_requests` is empty for forks), confirms the PR is still open, not a draft,
-and still at the exact commit that passed, applies the daily cap, then squash-merges.
+and still at the exact commit that passed, applies the daily cap, re-validates against current
+`main`, then squash-merges.
 
-The only gates are a green `Check` and a per-author 24-hour merge cap — a spam throttle,
-applied without regard to content. Maintainers (`OWNER`, `MEMBER`, `COLLABORATOR`) are exempt.
-Tune the cap with the `DAILY_MERGE_CAP` repository variable; the default is 30.
+The only gates are a green `Check`, a per-author 24-hour merge cap — a spam throttle, applied
+without regard to content — and that revalidation. Maintainers (`OWNER`, `MEMBER`,
+`COLLABORATOR`) are exempt from the cap. Tune it with the `DAILY_MERGE_CAP` repository
+variable; the default is 30.
+
+#### Pre-merge revalidation
+
+`Check` runs against the PR's own branch and nothing else, so two PRs submitting the same
+track both go green: neither one can see the other. A stale-but-green `Check` is therefore not
+enough on its own to merge.
+
+Before merging, `Auto-merge` fetches the PR's `incoming/*.xlrc` onto a checkout of current
+`main` and re-runs `npm run validate:incoming`. If that fails — nearly always
+`incoming-duplicate-track`, because another PR landed the same song first — the merge is
+skipped and the PR gets one `<!-- xlrcdb-stale-check -->` comment explaining why. It stays
+open for a human.
+
+This is why `concurrency.group` is the constant `auto-merge` rather than being keyed on the
+head SHA: the revalidation is only sound if each merge lands on `main` before the next PR is
+checked against it. Auto-merges are deliberately serialized.
+
+If the revalidation cannot be *set up* (the fetch or checkout fails), that is logged as a
+warning and the merge proceeds. An infrastructure failure is not a finding about the
+submission and must not silently block valid PRs.
 
 There is no human approval step. Nobody reviews submitted lyrics. See
 [LEGAL.md](../LEGAL.md).

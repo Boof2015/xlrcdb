@@ -3,13 +3,14 @@ import { randomInt } from "node:crypto";
 import path from "node:path";
 import { parseXLRC, validateXLRC } from "@boof2015/xlrc";
 import { generateIndex } from "./indexGenerator.js";
-import { inspectRepository, validateRepository } from "./validator.js";
+import { inspectRepository, isSameRecording, validateRepository } from "./validator.js";
 import {
   ARTIST_ID_PATTERN,
   TRACK_ID_PATTERN,
   expectedShardedPath,
   findFiles,
   inspectLanguageMetadata,
+  matchKey,
   normalizeKey,
   parseLengthSeconds,
   validationError
@@ -193,14 +194,25 @@ function planNormalization(repository, incomingEntries, generateId) {
       continue;
     }
 
-    const normalizedTitle = normalizeKey(title);
-    const duplicate = plannedTracks.find((track) => (
-      track.artistId === artist.id &&
-      track.normalizedTitle === normalizedTitle &&
-      Math.abs(track.lengthSeconds - lengthSeconds) <= 1
-    ));
+    const candidate = {
+      artistId: artist.id,
+      artistName: artist.canonicalName,
+      artistMatchKey: matchKey(artist.canonicalName),
+      normalizedTitle: normalizeKey(title),
+      titleMatchKey: matchKey(title),
+      lengthSeconds
+    };
+
+    const duplicate = plannedTracks.find((track) => isSameRecording(track, candidate));
     if (duplicate) {
-      errors.push(validationError("incoming-duplicate-track", entry.filePath, `Incoming track duplicates ${duplicate.filePath}`));
+      const detail = duplicate.artistName && duplicate.artistName !== artist.canonicalName
+        ? ` (already filed under "${duplicate.artistName}")`
+        : "";
+      errors.push(validationError(
+        "incoming-duplicate-track",
+        entry.filePath,
+        `Incoming track duplicates ${duplicate.filePath}${detail}`
+      ));
       continue;
     }
 
@@ -210,11 +222,9 @@ function planNormalization(repository, incomingEntries, generateId) {
     }
 
     const track = {
+      ...candidate,
       id,
-      artistId: artist.id,
-      normalizedTitle,
       title,
-      lengthSeconds,
       filePath: expectedShardedPath("tracks", id, ".xlrc"),
       path: expectedShardedPath("tracks", id, ".xlrc"),
       content: entry.content
@@ -242,7 +252,19 @@ function validateIncomingLanguageMetadata(file, filePath, errors) {
     ));
   }
 
-  return metadata.missingHeaders.length === 0 && metadata.missingLanguages.length === 0;
+  if (metadata.invalidLanguages.length > 0) {
+    errors.push(validationError(
+      "incoming-language-invalid",
+      filePath,
+      `Incoming language tags must be real ISO 639 / BCP 47 codes; unknown: ${metadata.invalidLanguages.join(", ")}`
+    ));
+  }
+
+  return (
+    metadata.missingHeaders.length === 0 &&
+    metadata.missingLanguages.length === 0 &&
+    metadata.invalidLanguages.length === 0
+  );
 }
 
 function resolveOrCreateArtist(artistName, aliasIndex, usedIds, artistsToCreate, generateId, filePath, errors) {

@@ -116,6 +116,60 @@ test("track language coverage is case-insensitive and allows extra languages", a
   assert.deepEqual(await validateRepository(root), []);
 });
 
+test("unknown language tags fail", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:xx]",
+      "[langs:xx]",
+      "[00:00.00]x",
+      ""
+    ].join("\n")
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-language-invalid"]);
+  assert.match(errors[0].message, /unknown: xx$/u);
+});
+
+test("unknown inline translation languages fail", async () => {
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Example Track]",
+      "[ar:Example Artist]",
+      "[length:00:10]",
+      "[lang:en]",
+      "[langs:en,notalanguage]",
+      "[00:00.00]x",
+      "[>notalanguage]y",
+      ""
+    ].join("\n")
+  });
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-language-invalid"]);
+  assert.match(errors[0].message, /unknown: notalanguage$/u);
+});
+
+test("uncommon but real languages pass", async () => {
+  // Indonesian. Regression guard: nothing here restricts which real languages are allowed.
+  const root = await createFixtureRepo({
+    track: [
+      "[ti:Sadrah]",
+      "[ar:Example Artist]",
+      "[length:04:08]",
+      "[lang:id]",
+      "[langs:id]",
+      "[00:00.00]Aku yang dipaksa menyerah",
+      ""
+    ].join("\n")
+  });
+
+  assert.deepEqual(await validateRepository(root), []);
+});
+
 test("duplicate alias across artists fails", async () => {
   const root = await createFixtureRepo();
   await writeArtist(root, "art_aabbccddee", [
@@ -141,6 +195,47 @@ test("duplicate track title and length for the same artist fails", async () => {
   ].join("\n"));
 
   assertErrorCodes(await validateRepository(root), ["track-duplicate"]);
+});
+
+test("duplicate track across near-identical artist records fails", async () => {
+  // The PR #31 / #32 shape: one song submitted twice, the artist punctuated differently each
+  // time, so it lands under two artist records. normalizeKey keeps them apart; matchKey does
+  // not, which is what makes this a duplicate rather than two unrelated tracks.
+  const root = await createFixtureRepo({ skipTrack: true });
+  await writeArtist(root, "art_aabbccddee", [
+    'id = "art_aabbccddee"',
+    'canonical_name = "For - Revenge"',
+    'aliases = ["For - Revenge"]',
+    ""
+  ].join("\n"));
+  await writeArtist(root, "art_ffgghhiijj", [
+    'id = "art_ffgghhiijj"',
+    'canonical_name = "for Revenge"',
+    'aliases = ["for Revenge"]',
+    ""
+  ].join("\n"));
+  await writeTrack(root, "trk_a1b2c3d4e5", sadrah("For - Revenge"));
+  await writeTrack(root, "trk_f6g7h8i9j0", sadrah("for Revenge"));
+
+  const errors = await validateRepository(root);
+  assertErrorCodes(errors, ["track-duplicate"]);
+  assert.match(errors[0].message, /For - Revenge/u);
+  assert.match(errors[0].message, /for Revenge/u);
+});
+
+test("distinct tracks under one artist are not duplicates", async () => {
+  const root = await createFixtureRepo();
+  await writeTrack(root, "trk_aabbccddee", [
+    "[ti:A Different Track]",
+    "[ar:Example Artist]",
+    "[length:00:10]",
+    "[lang:en]",
+    "[langs:en]",
+    "[00:00.00]x",
+    ""
+  ].join("\n"));
+
+  assert.deepEqual(await validateRepository(root), []);
 });
 
 test("wrong sharded path fails", async () => {
@@ -189,6 +284,18 @@ function validTrack() {
     "[lang:en]",
     "[langs:en]",
     "[00:00.00]x",
+    ""
+  ].join("\n");
+}
+
+function sadrah(artist) {
+  return [
+    "[ti:Sadrah]",
+    `[ar:${artist}]`,
+    "[length:04:08]",
+    "[lang:id]",
+    "[langs:id]",
+    "[00:00.00]Aku yang dipaksa menyerah",
     ""
   ].join("\n");
 }
