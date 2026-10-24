@@ -412,7 +412,7 @@
         "en"
       ],
       "furigana": false,
-      "words": false,
+      "words": true,
       "voices": false,
       "added": "2026-10-23T22:36:29.000Z"
     },
