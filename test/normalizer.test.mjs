@@ -68,6 +68,22 @@ test("records when each new track was added, keeping earlier dates", async () =>
   assert.deepEqual(await validateRepository(root), []);
 });
 
+test("reports which incoming file became which track", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-normalize-report-"));
+  await writeArtist(root, "art_5k3n9p2xq7", "Example Artist", ["Example Artist"]);
+  await writeIncoming(root, "my-song.xlrc", validTrack());
+
+  const result = await normalizeIncoming(root, { generateId: queuedIds(["trk_a1b2c3d4e5"]) });
+
+  assert.deepEqual(result.tracks, [{
+    id: "trk_a1b2c3d4e5",
+    artistId: "art_5k3n9p2xq7",
+    artistName: "Example Artist",
+    title: "Example Track",
+    incomingPath: "incoming/my-song.xlrc"
+  }]);
+});
+
 test("normalizes an incoming track by creating a new artist", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-normalize-new-"));
   await writeIncoming(root, "one.xlrc", validTrack());
