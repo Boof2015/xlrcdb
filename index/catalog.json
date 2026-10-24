@@ -1,0 +1,493 @@
+{
+  "version": 1,
+  "artists": [
+    {
+      "id": "art_4eTOqNDGBP",
+      "name": "for Revenge",
+      "aliases": [
+        "for Revenge"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_61iD-18vfX",
+      "name": "underscores",
+      "aliases": [
+        "underscores"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_73GNkgdD0-",
+      "name": "Misekai",
+      "aliases": [
+        "Misekai"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_BYzLaaHjXa",
+      "name": "Eve",
+      "aliases": [
+        "Eve"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_FalWgEgiQ_",
+      "name": "Jane Remover",
+      "aliases": [
+        "Jane Remover",
+        "973BADVIBEZGIRL",
+        "Venturing",
+        "Leroy"
+      ],
+      "tracks": 3
+    },
+    {
+      "id": "art_KId1XhjXMt",
+      "name": "Oratorio The World God Only Knows",
+      "aliases": [
+        "Oratorio The World God Only Knows"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_MWaE3FbqZ7",
+      "name": "Seiryu",
+      "aliases": [
+        "Seiryu"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_NKQqeNBOnB",
+      "name": "Kai Angel",
+      "aliases": [
+        "Kai Angel"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_XLr_qG2XPp",
+      "name": "かめりあ",
+      "latin": "Camellia",
+      "aliases": [
+        "かめりあ",
+        "Camellia"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art__Ok1iVJB0M",
+      "name": "MAISONdes",
+      "aliases": [
+        "MAISONdes"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_eEAHBbIlqt",
+      "name": "Hoshimachi Suisei",
+      "aliases": [
+        "Hoshimachi Suisei",
+        "星街すいせい"
+      ],
+      "tracks": 3
+    },
+    {
+      "id": "art_h2c952tsMt",
+      "name": "K/DA",
+      "aliases": [
+        "K/DA"
+      ],
+      "tracks": 2
+    },
+    {
+      "id": "art_iU49SIZjB6",
+      "name": "9Lana",
+      "aliases": [
+        "9Lana"
+      ],
+      "tracks": 1
+    },
+    {
+      "id": "art_xKHwh6DguS",
+      "name": "Hans Solo",
+      "aliases": [
+        "Hans Solo"
+      ],
+      "tracks": 1
+    }
+  ],
+  "tracks": [
+    {
+      "id": "trk_2I-bltGyu8",
+      "artist": "art_eEAHBbIlqt",
+      "title": "Bibbidiba",
+      "length": 165,
+      "path": "tracks/2I/-b/trk_2I-bltGyu8.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en"
+      ],
+      "lines": 63,
+      "translations": [
+        "en"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-05-24T05:22:26.000Z"
+    },
+    {
+      "id": "trk_4Tzf5LqHAc",
+      "artist": "art_xKHwh6DguS",
+      "title": "Złoto",
+      "length": 319,
+      "path": "tracks/4T/zf/trk_4Tzf5LqHAc.xlrc",
+      "lang": "pl",
+      "langs": [
+        "pl"
+      ],
+      "lines": 73,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-10-21T19:42:35.000Z"
+    },
+    {
+      "id": "trk_DHx-FZWcYd",
+      "artist": "art_iU49SIZjB6",
+      "title": "Balalaika",
+      "length": 190,
+      "path": "tracks/DH/x-/trk_DHx-FZWcYd.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 44,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-05-25T05:40:58.000Z"
+    },
+    {
+      "id": "trk_DhfdjjZ3hl",
+      "artist": "art_FalWgEgiQ_",
+      "title": "Like a Kiss demo v4",
+      "length": 218,
+      "path": "tracks/Dh/fd/trk_DhfdjjZ3hl.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 20,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-05-25T23:33:48.000Z"
+    },
+    {
+      "id": "trk_GgKnMRMDHr",
+      "artist": "art_eEAHBbIlqt",
+      "title": "The Stargazing Girl",
+      "length": 223,
+      "path": "tracks/Gg/Kn/trk_GgKnMRMDHr.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 40,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-08-07T00:35:50.000Z"
+    },
+    {
+      "id": "trk_H_Zbs6MXJx",
+      "artist": "art__Ok1iVJB0M",
+      "title": "化けの皮 (feat. こぼ・かなえる, 重音テト, Giga & TeddyLoid)",
+      "length": 179,
+      "path": "tracks/H_/Zb/trk_H_Zbs6MXJx.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 49,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-07-28T21:14:36.000Z"
+    },
+    {
+      "id": "trk_KfVbfuUA7G",
+      "artist": "art_BYzLaaHjXa",
+      "title": "Underdog",
+      "length": 193,
+      "path": "tracks/Kf/Vb/trk_KfVbfuUA7G.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en"
+      ],
+      "lines": 50,
+      "translations": [
+        "en"
+      ],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-07-27T22:39:29.000Z"
+    },
+    {
+      "id": "trk_S53hPOiBl6",
+      "artist": "art_XLr_qG2XPp",
+      "title": "流星群",
+      "length": 273,
+      "path": "tracks/S5/3h/trk_S53hPOiBl6.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 30,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-07-28T19:38:13.000Z"
+    },
+    {
+      "id": "trk_U0P0gM-CNe",
+      "artist": "art_73GNkgdD0-",
+      "title": "104hz",
+      "length": 272,
+      "path": "tracks/U0/P0/trk_U0P0gM-CNe.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 26,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-08-07T04:43:37.000Z"
+    },
+    {
+      "id": "trk_WIQIs4mXsY",
+      "artist": "art_61iD-18vfX",
+      "title": "Do It (Yves Remix)",
+      "length": 197,
+      "path": "tracks/WI/QI/trk_WIQIs4mXsY.xlrc",
+      "lang": "en",
+      "langs": [
+        "en",
+        "ja"
+      ],
+      "lines": 74,
+      "translations": [
+        "en"
+      ],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-05-25T23:27:39.000Z"
+    },
+    {
+      "id": "trk_hoiwxqbe5s",
+      "artist": "art_KId1XhjXMt",
+      "title": "God only knows -Secrets of the Goddess-",
+      "length": 772,
+      "path": "tracks/ho/iw/trk_hoiwxqbe5s.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 156,
+      "translations": [],
+      "furigana": false,
+      "words": true,
+      "voices": false,
+      "added": "2026-08-05T22:27:16.000Z"
+    },
+    {
+      "id": "trk_jVPawqVxW1",
+      "artist": "art_4eTOqNDGBP",
+      "title": "Sadrah",
+      "length": 248,
+      "path": "tracks/jV/Pa/trk_jVPawqVxW1.xlrc",
+      "lang": "id",
+      "langs": [
+        "id"
+      ],
+      "lines": 32,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-08-07T04:44:44.000Z"
+    },
+    {
+      "id": "trk_l_zA2o0373",
+      "artist": "art_FalWgEgiQ_",
+      "title": "if weeeee",
+      "length": 164,
+      "path": "tracks/l_/zA/trk_l_zA2o0373.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 30,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-07-28T19:31:51.000Z"
+    },
+    {
+      "id": "trk_qzb1qC1Nfg",
+      "artist": "art_h2c952tsMt",
+      "title": "The Baddest",
+      "length": 162,
+      "path": "tracks/qz/b1/trk_qzb1qC1Nfg.xlrc",
+      "lang": "en",
+      "langs": [
+        "en",
+        "ko"
+      ],
+      "lines": 64,
+      "translations": [
+        "en"
+      ],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-05-25T06:06:34.000Z"
+    },
+    {
+      "id": "trk_rTBDkPWq__",
+      "artist": "art_h2c952tsMt",
+      "title": "FIRESTARTER",
+      "length": 187,
+      "path": "tracks/rT/BD/trk_rTBDkPWq__.xlrc",
+      "lang": "en",
+      "langs": [
+        "en",
+        "ko"
+      ],
+      "lines": 96,
+      "translations": [
+        "en"
+      ],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-10-23T22:36:29.000Z"
+    },
+    {
+      "id": "trk_sC3kCTATwD",
+      "artist": "art_eEAHBbIlqt",
+      "title": "Stargazing",
+      "length": 223,
+      "path": "tracks/sC/3k/trk_sC3kCTATwD.xlrc",
+      "lang": "ja",
+      "langs": [
+        "ja",
+        "en",
+        "ja-Latn"
+      ],
+      "lines": 40,
+      "translations": [
+        "en",
+        "ja-Latn"
+      ],
+      "furigana": true,
+      "words": false,
+      "voices": false,
+      "added": "2026-08-07T04:42:53.000Z"
+    },
+    {
+      "id": "trk_sN9_O4jblC",
+      "artist": "art_FalWgEgiQ_",
+      "title": "Dreamflasher (Alt Intro)",
+      "length": 251,
+      "path": "tracks/sN/9_/trk_sN9_O4jblC.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 65,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-07-26T21:41:00.000Z"
+    },
+    {
+      "id": "trk_spXicolnQD",
+      "artist": "art_NKQqeNBOnB",
+      "title": "Pretty Girls",
+      "length": 178,
+      "path": "tracks/sp/Xi/trk_spXicolnQD.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 43,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-06-01T22:40:12.000Z"
+    },
+    {
+      "id": "trk_yRyY1C6V_U",
+      "artist": "art_MWaE3FbqZ7",
+      "title": "AO-∞",
+      "length": 216,
+      "path": "tracks/yR/yY/trk_yRyY1C6V_U.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 42,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-09-19T00:56:52.000Z"
+    }
+  ]
+}
