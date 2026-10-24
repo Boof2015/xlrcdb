@@ -111,6 +111,78 @@ test("valid fixture repos generate matching index files", async () => {
   assert.equal(await readFile(artistPath, "utf8"), files.get("index/artists/5k/3n/art_5k3n9p2xq7.json"));
 });
 
+test("catalog lists artists and tracks with their contents and added dates", async () => {
+  const root = await createFixtureRepo({
+    aliases: ["Example Artist", "EXAMPLE"],
+    tracks: [
+      {
+        id: "trk_a1b2c3d4e5",
+        artist: "Example Artist",
+        title: "Plain Track",
+        length: "00:10"
+      },
+      {
+        id: "trk_zzzzzzzzzz",
+        artist: "EXAMPLE",
+        title: "Rich Track",
+        length: "01:05",
+        lang: "ja",
+        langs: "ja,en,ja-Latn",
+        lines: [
+          "[00:01.00][v:A]私[わたし]",
+          "[>en]I",
+          "[>ja-Latn]watashi",
+          "[00:02.00][00:30.00]<00:02.00>サビ",
+          "[>en]",
+          "[00:40.00]"
+        ]
+      }
+    ]
+  });
+  await writeFile(path.join(root, "tracks", "added.json"), '{\n  "trk_zzzzzzzzzz": "2026-10-20T08:00:00.000Z",\n  "trk_gonegonego": "2026-01-01T00:00:00.000Z"\n}\n');
+
+  const catalog = JSON.parse((await buildIndexFiles(root)).get("index/catalog.json"));
+
+  assert.deepEqual(catalog, {
+    version: 1,
+    artists: [
+      { id: "art_5k3n9p2xq7", name: "Example Artist", aliases: ["Example Artist", "EXAMPLE"], tracks: 2 }
+    ],
+    tracks: [
+      {
+        id: "trk_a1b2c3d4e5",
+        artist: "art_5k3n9p2xq7",
+        title: "Plain Track",
+        length: 10,
+        path: "tracks/a1/b2/trk_a1b2c3d4e5.xlrc",
+        lang: "en",
+        langs: ["en"],
+        lines: 1,
+        translations: [],
+        furigana: false,
+        words: false,
+        voices: false,
+        added: null
+      },
+      {
+        id: "trk_zzzzzzzzzz",
+        artist: "art_5k3n9p2xq7",
+        title: "Rich Track",
+        length: 65,
+        path: "tracks/zz/zz/trk_zzzzzzzzzz.xlrc",
+        lang: "ja",
+        langs: ["ja", "en", "ja-Latn"],
+        lines: 2,
+        translations: ["en", "ja-Latn"],
+        furigana: true,
+        words: true,
+        voices: true,
+        added: "2026-10-20T08:00:00.000Z"
+      }
+    ]
+  });
+});
+
 async function createFixtureRepo(options = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-index-"));
   await writeArtist(root, options.artistId ?? "art_5k3n9p2xq7", {
@@ -152,9 +224,9 @@ async function writeTrack(root, track) {
     `[ti:${track.title}]`,
     `[ar:${track.artist}]`,
     `[length:${track.length}]`,
-    "[lang:en]",
-    "[langs:en]",
-    "[00:00.00]x",
+    `[lang:${track.lang ?? "en"}]`,
+    `[langs:${track.langs ?? "en"}]`,
+    ...(track.lines ?? ["[00:00.00]x"]),
     ""
   ].join("\n"));
 }

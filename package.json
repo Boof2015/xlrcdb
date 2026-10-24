@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "backfill:added": "node scripts/backfill-added.mjs",
     "classify:pr": "node scripts/classify-pr.mjs",
     "check": "npm test && npm run validate && npm run validate:incoming && npm run generate:index && git diff --exit-code -- index",
     "check:pr-scope": "node scripts/check-pr-scope.mjs",

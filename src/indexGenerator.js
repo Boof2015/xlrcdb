@@ -26,6 +26,8 @@ export async function buildIndexFiles(rootDir) {
     aliases
   }));
 
+  files.set("index/catalog.json", toJson(buildCatalog(repository, tracksByArtist)));
+
   for (const artist of [...repository.artists].sort((left, right) => compareStrings(left.id, right.id))) {
     const tracks = (tracksByArtist.get(artist.id) ?? [])
       .sort(compareTracks)
@@ -60,6 +62,59 @@ export async function generateIndex(rootDir) {
   }
 
   return files;
+}
+
+// Everything a browser needs to search and browse in one file: artists with their aliases
+// as written (index/aliases.json only has normalized keys), and tracks with what's in them
+// and when they were added. Clients that only look tracks up keep using aliases.json and the
+// per-artist files, which are unchanged.
+function buildCatalog(repository, tracksByArtist) {
+  const artists = [...repository.artists]
+    .sort((left, right) => compareStrings(left.id, right.id))
+    .map((artist) => ({
+      id: artist.id,
+      name: artist.canonicalName,
+      ...(artist.canonicalNameLatin ? { latin: artist.canonicalNameLatin } : {}),
+      aliases: artist.aliases,
+      tracks: (tracksByArtist.get(artist.id) ?? []).length
+    }));
+
+  const tracks = [...repository.tracks]
+    .sort((left, right) => compareStrings(left.id, right.id))
+    .map((track) => ({
+      id: track.id,
+      artist: track.artistId,
+      title: track.title,
+      length: track.lengthSeconds,
+      path: track.filePath,
+      ...describeTrack(track.file),
+      added: repository.added?.get(track.id) ?? null
+    }));
+
+  return { version: 1, artists, tracks };
+}
+
+function describeTrack(file) {
+  const meta = file?.meta ?? {};
+  const seen = new Set();
+  const lyrics = [];
+  for (const line of file?.lines ?? []) {
+    if (seen.has(line.line)) continue; // a multi-timestamp line counts once
+    seen.add(line.line);
+    if (!line.isEmpty) lyrics.push(line);
+  }
+  const translations = [...new Set(lyrics.flatMap((line) => line.translations
+    .filter((translation) => translation.text.trim())
+    .map((translation) => translation.lang)))].sort(compareStrings);
+  return {
+    lang: typeof meta.lang === "string" ? meta.lang.trim() : "",
+    langs: Array.isArray(meta.langs) ? meta.langs : [],
+    lines: lyrics.length,
+    translations,
+    furigana: lyrics.some((line) => line.furigana.length > 0),
+    words: lyrics.some((line) => line.words.length > 0),
+    voices: lyrics.some((line) => Boolean(line.voice))
+  };
 }
 
 function buildAliases(artists) {

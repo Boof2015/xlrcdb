@@ -8,6 +8,7 @@ import {
   matchKey,
   normalizeKey,
   parseLengthSeconds,
+  readAddedLedger,
   readArtistEntries,
   readTrackEntries,
   validationError
@@ -26,7 +27,10 @@ export async function inspectRepository(rootDir) {
 
   validateDuplicateTracks(tracks, errors);
 
-  return { root, artists, aliasIndex, tracks, errors };
+  const { ledger: added, errors: ledgerErrors } = await readAddedLedger(root);
+  errors.push(...ledgerErrors);
+
+  return { root, artists, aliasIndex, tracks, added, errors };
 }
 
 function validateArtists(entries, errors) {
@@ -79,6 +83,7 @@ function validateArtists(entries, errors) {
     artists.push({
       id,
       canonicalName: typeof canonicalName === "string" ? canonicalName : "",
+      canonicalNameLatin: typeof document.canonical_name_latin === "string" ? document.canonical_name_latin : "",
       aliases: Array.isArray(aliases) ? aliases.filter((alias) => typeof alias === "string") : [],
       filePath
     });
@@ -155,7 +160,8 @@ function validateTracks(entries, aliasIndex, errors) {
         titleMatchKey: matchKey(title),
         title,
         lengthSeconds,
-        filePath
+        filePath,
+        file
       });
     }
   }

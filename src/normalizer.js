@@ -5,6 +5,7 @@ import { parseXLRC, validateXLRC } from "@boof2015/xlrc";
 import { generateIndex } from "./indexGenerator.js";
 import { inspectRepository, isSameRecording, validateRepository } from "./validator.js";
 import {
+  ADDED_LEDGER_PATH,
   ARTIST_ID_PATTERN,
   TRACK_ID_PATTERN,
   expectedShardedPath,
@@ -13,6 +14,7 @@ import {
   matchKey,
   normalizeKey,
   parseLengthSeconds,
+  serializeAddedLedger,
   validationError
 } from "./repository.js";
 
@@ -56,6 +58,14 @@ export async function normalizeIncoming(rootDir, options = {}) {
 
   for (const track of plan.tracksToCreate) {
     await writePlannedFile(root, track.path, track.content);
+  }
+
+  // Record when each new track joined, for "recently added" in index/catalog.json.
+  if (plan.tracksToCreate.length > 0) {
+    const added = new Map(repository.added);
+    const now = (options.now ?? (() => new Date()))().toISOString();
+    for (const track of plan.tracksToCreate) added.set(track.id, now);
+    await writeFile(path.join(root, ADDED_LEDGER_PATH), serializeAddedLedger(added));
   }
 
   for (const entry of incomingEntries) {
