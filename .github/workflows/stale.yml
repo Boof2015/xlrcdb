@@ -1,0 +1,38 @@
+name: Close stale submissions
+
+# Contributor submissions whose checks failed carry the needs-fix label (comment-pr-report.yml
+# adds it, and removes it once the checks pass). With no update for 7 days the bot warns; 7
+# days after that it closes the PR. Any push or comment resets the clock.
+#
+# Nothing else is touched: issues, drafts, maintainers' PRs, and PRs waiting on a maintainer
+# (manual review, the daily merge cap) never carry the label.
+#
+# The two messages must match buildStaleWarning / buildStaleClose in src/prNotices.js; a test
+# checks that they do.
+on:
+  schedule:
+    - cron: "23 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v9
+        with:
+          repo-token: ${{ secrets.XLRCDB_BOT_TOKEN || github.token }}
+          only-pr-labels: needs-fix
+          exempt-draft-pr: true
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          days-before-pr-stale: 7
+          days-before-pr-close: 7
+          stale-pr-label: stale
+          remove-pr-stale-when-updated: true
+          operations-per-run: 60
+          stale-pr-message: "The checks on this pull request failed and it hasn't been updated in 7 days. It will be closed in 7 days unless it's updated: push a fix (or reply) to keep it open."
+          close-pr-message: "Closing this because the checks failed and there's been no update for 14 days. You're welcome to push a fix and reopen it, or start fresh in the [xlrcdb editor](https://astramusic.dev/xlrcdb/#/submit)."

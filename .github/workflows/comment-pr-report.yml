@@ -1,5 +1,16 @@
 name: Comment PR Report
 
+# Tells the author what happened when Check finishes on their pull request: what's wrong and
+# how to fix it, or, after a fix, that it passes now. Failing contributor submissions get the
+# needs-fix label, which stale.yml uses to warn and then close them if nothing changes.
+#
+# Runs as workflow_run so it can comment on pull requests from forks. Comments come from
+# xlrcdb-bot (XLRCDB_BOT_TOKEN), the account that also merges; GITHUB_TOKEN is the fallback if
+# the secret is missing, so notices still go out.
+#
+# The report artifact is produced by the PR's own Check run, so it is untrusted data: a PR can
+# change the scripts that write it. The wording comes from src/prNotices.js on main (checked
+# out below), which only quotes that data.
 on:
   workflow_run:
     workflows:
@@ -19,8 +30,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
       - name: Download PR gate report
-        id: download-report
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
@@ -32,90 +45,102 @@ jobs:
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.XLRCDB_BOT_TOKEN || github.token }}
           script: |
             const fs = require("node:fs");
-            const marker = "<!-- xlrcdb-pr-gate-report -->";
+            const { pathToFileURL } = require("node:url");
+            const notices = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/src/prNotices.js`).href);
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const run = context.payload.workflow_run;
-            const payloadPull = run.pull_requests?.find((pull) => pull.number);
-            let issue_number = payloadPull?.number;
 
-            if (!issue_number) {
-              const associatedPulls = await github.paginate(
-                github.rest.repos.listPullRequestsAssociatedWithCommit,
-                {
-                  owner,
-                  repo,
-                  commit_sha: run.head_sha,
-                  per_page: 100
-                }
-              );
-              const associatedPull = associatedPulls.find((pull) => pull.state === "open") ?? associatedPulls[0];
-              issue_number = associatedPull?.number;
+            // Which PR this Check run belongs to. For fork PRs (nearly every real submission)
+            // workflow_run.pull_requests is empty and the associated-commit lookup misses the
+            // fork's head commit, so fall back to matching an open PR by head SHA.
+            let number = run.pull_requests?.find((pull) => pull.number)?.number;
+            if (!number) {
+              const associated = await github.paginate(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+                owner, repo, commit_sha: run.head_sha, per_page: 100
+              }).catch(() => []);
+              number = associated.find((pull) => pull.state === "open")?.number;
             }
-
-            if (!issue_number) {
-              core.warning(`No pull request was found for Check run ${run.id} at ${run.head_sha}.`);
+            if (!number) {
+              const open = await github.paginate(github.rest.pulls.list, { owner, repo, state: "open", per_page: 100 });
+              number = open.find((pull) => pull.head.sha === run.head_sha)?.number;
+            }
+            if (!number) {
+              core.warning(`No open pull request found for Check run ${run.id} at ${run.head_sha}.`);
               return;
             }
 
-            const conclusion = context.payload.workflow_run.conclusion;
-            const reportPath = "pr-gate-report/report.md";
-
-            let body = "";
-            if (fs.existsSync(reportPath)) {
-              body = fs.readFileSync(reportPath, "utf8");
+            const { data: pull } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+            if (pull.state !== "open") return;
+            if (pull.head.sha !== run.head_sha) {
+              core.info(`PR #${number} moved on from ${run.head_sha}; the newer Check will report.`);
+              return;
             }
 
-            if (!body.trim()) {
-              body = [
-                marker,
-                "## XLRCDB PR Gate Report",
-                "",
-                `The Check workflow finished with \`${conclusion}\`, but no detailed report artifact was available.`,
-                "",
-                "Open the workflow logs for details."
-              ].join("\n");
-            }
-
-            const comments = await github.paginate(github.rest.issues.listComments, {
-              owner,
-              repo,
-              issue_number,
-              per_page: 100
+            const read = (name) => {
+              try {
+                return fs.readFileSync(`pr-gate-report/${name}`, "utf8");
+              } catch {
+                return "";
+              }
+            };
+            let classification = null;
+            try {
+              classification = JSON.parse(read("classification.json"));
+            } catch {}
+            const kind = typeof classification?.kind === "string" ? classification.kind : "unknown";
+            const errors = notices.parseGateErrors({
+              classification,
+              logs: [read("classify.log"), read("validate-raw.log"), read("normalize-dry-run.log")]
             });
+            const author = pull.user.login;
+            const maintainer = ["OWNER", "MEMBER", "COLLABORATOR"].includes(pull.author_association);
+            // Only contributor submissions are closed when they go stale; maintainers' PRs and
+            // anything waiting on a maintainer are left alone.
+            const staleEligible = !maintainer && kind !== "manual-review";
+
+            // Our earlier comment, found by marker, but only if this bot (or the Actions bot
+            // that used to post it) wrote it, so a copied marker can't hijack the thread.
+            let me = "";
+            try {
+              me = (await github.rest.users.getAuthenticated()).data.login;
+            } catch {}
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: number, per_page: 100 });
             const existing = comments.find((comment) => (
-              comment.user?.type === "Bot" &&
-              comment.body?.includes(marker)
+              comment.body?.includes(notices.FAILURE_MARKER) &&
+              (comment.user?.type === "Bot" || (me && comment.user?.login === me))
             ));
 
-            if (conclusion === "success") {
-              if (!existing) {
-                return;
+            if (run.conclusion === "success") {
+              if (existing) {
+                await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: notices.buildPassedComment({ author }) });
               }
-
-              body = [
-                marker,
-                "## XLRCDB PR Gate Report",
-                "",
-                "The latest Check workflow passed."
-              ].join("\n");
-            }
-
-            if (existing) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existing.id,
-                body
-              });
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: notices.NEEDS_FIX_LABEL }).catch(() => {});
               return;
             }
+            if (run.conclusion !== "failure") return; // cancelled / skipped: say nothing
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body
-            });
+            const body = notices.buildFailureComment({ author, kind, errors, report: read("report.md"), staleClose: staleEligible });
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+            }
+
+            if (staleEligible) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: notices.NEEDS_FIX_LABEL });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner, repo, name: notices.NEEDS_FIX_LABEL, color: "d93f0b",
+                    description: `Checks failed; closed after ${notices.STALE_CLOSE_DAYS} days without an update`
+                  }).catch((createError) => core.warning(`Could not create label: ${createError.message}`));
+                }
+              }
+              await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: [notices.NEEDS_FIX_LABEL] })
+                .catch((error) => core.warning(`Could not label PR #${number}: ${error.message}`));
+            }

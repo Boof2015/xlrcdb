@@ -65,6 +65,28 @@ lyric submission. **Changes to this repository's own docs or workflows — inclu
 that added this file — will fail `Check` and must be merged by hand.** That is the design
 working, not a bug to fix.
 
+## Bot Notices
+
+xlrcdb-bot (the `XLRCDB_BOT_TOKEN` account that also merges) keeps contributors informed. The
+wording lives in [`src/prNotices.js`](../src/prNotices.js); the workflows only decide when to
+post.
+
+| When | What | Where |
+| --- | --- | --- |
+| `Check` fails | Comment that @mentions the author, explains each error in plain words, says how to fix it (push to the PR, or use the editor), with the raw report collapsed underneath. Contributor submissions also get the `needs-fix` label. | `comment-pr-report.yml` |
+| `Check` passes after a failure | The same comment is updated to say it passes now; `needs-fix` is removed. | `comment-pr-report.yml` |
+| 7 days with no update while labeled `needs-fix` | Warning that it closes in 7 days (`stale` label). | `stale.yml` (daily) |
+| 14 days with no update | Closed, with a note on how to reopen or start fresh. | `stale.yml` |
+| A merged submission is normalized | "It's live" comment on the PR with a link to the track page. | `reconcile.yml` |
+
+Any push or comment resets the stale clock. Maintainers' PRs, manual-review PRs and PRs held
+by the daily merge cap never get `needs-fix`, so they are never closed automatically.
+
+The report artifact comes from the PR's own `Check` run, so it is treated as untrusted data:
+it is only quoted, with `@` mentions broken up, HTML comments neutralized and its length
+capped. If `XLRCDB_BOT_TOKEN` is missing, the notices fall back to `GITHUB_TOKEN` (posted by
+github-actions) rather than going silent.
+
 ## Language and Duplicate Rules
 
 Two checks that are xlrcdb's own rather than the XLRC format's, so neither is enforced by the

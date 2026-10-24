@@ -82,7 +82,15 @@ export async function normalizeIncoming(rootDir, options = {}) {
     incomingProcessed: incomingEntries.length,
     artistsCreated: plan.artistsToCreate.length,
     tracksCreated: plan.tracksToCreate.length,
-    generatedFiles: generatedFiles.size
+    generatedFiles: generatedFiles.size,
+    // Which incoming file became which track, so Reconcile can tell the contributor it's live.
+    tracks: plan.tracksToCreate.map((track) => ({
+      id: track.id,
+      artistId: track.artistId,
+      artistName: track.artistName,
+      title: track.title,
+      incomingPath: track.incomingPath
+    }))
   };
 }
 
@@ -235,6 +243,7 @@ function planNormalization(repository, incomingEntries, generateId) {
       ...candidate,
       id,
       title,
+      incomingPath: entry.filePath,
       filePath: expectedShardedPath("tracks", id, ".xlrc"),
       path: expectedShardedPath("tracks", id, ".xlrc"),
       content: entry.content
