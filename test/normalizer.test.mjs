@@ -15,7 +15,12 @@ test("normalizing with no incoming files refreshes an empty index", async () => 
     incomingProcessed: 0,
     artistsCreated: 0,
     tracksCreated: 0,
-    generatedFiles: 1
+    generatedFiles: 2
+  });
+  assert.deepEqual(JSON.parse(await readFile(path.join(root, "index", "catalog.json"), "utf8")), {
+    version: 1,
+    artists: [],
+    tracks: []
   });
   assert.deepEqual(JSON.parse(await readFile(path.join(root, "index", "aliases.json"), "utf8")), {
     version: 1,
@@ -35,6 +40,31 @@ test("normalizes an incoming track for an existing artist", async () => {
   assert.equal(result.tracksCreated, 1);
   assert.equal(await readFile(path.join(root, "tracks", "a1", "b2", "trk_a1b2c3d4e5.xlrc"), "utf8"), validTrack());
   assert.equal(await pathExists(path.join(root, "incoming", "one.xlrc")), false);
+  assert.deepEqual(await validateRepository(root), []);
+});
+
+test("records when each new track was added, keeping earlier dates", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-normalize-added-"));
+  await writeArtist(root, "art_5k3n9p2xq7", "Example Artist", ["Example Artist"]);
+  await writeTrack(root, "trk_aabbccddee", validTrack({ title: "Older Track" }));
+  await mkdir(path.join(root, "tracks"), { recursive: true });
+  await writeFile(path.join(root, "tracks", "added.json"), '{\n  "trk_aabbccddee": "2026-01-02T03:04:05.000Z"\n}\n');
+  await writeIncoming(root, "one.xlrc", validTrack());
+
+  await normalizeIncoming(root, {
+    generateId: queuedIds(["trk_a1b2c3d4e5"]),
+    now: () => new Date("2026-10-23T12:00:00.000Z")
+  });
+
+  assert.deepEqual(JSON.parse(await readFile(path.join(root, "tracks", "added.json"), "utf8")), {
+    trk_a1b2c3d4e5: "2026-10-23T12:00:00.000Z",
+    trk_aabbccddee: "2026-01-02T03:04:05.000Z"
+  });
+  const catalog = JSON.parse(await readFile(path.join(root, "index", "catalog.json"), "utf8"));
+  assert.deepEqual(catalog.tracks.map((track) => [track.id, track.added]), [
+    ["trk_a1b2c3d4e5", "2026-10-23T12:00:00.000Z"],
+    ["trk_aabbccddee", "2026-01-02T03:04:05.000Z"]
+  ]);
   assert.deepEqual(await validateRepository(root), []);
 });
 

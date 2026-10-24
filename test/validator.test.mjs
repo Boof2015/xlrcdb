@@ -246,6 +246,26 @@ test("wrong sharded path fails", async () => {
   assertErrorCodes(await validateRepository(root), ["track-path"]);
 });
 
+test("the added-dates ledger must map track ids to ISO timestamps", async () => {
+  const root = await createFixtureRepo();
+  await writeFile(path.join(root, "tracks", "added.json"), JSON.stringify({
+    trk_a1b2c3d4e5: "2026-10-20T08:00:00.000Z",
+    trk_gonegonego: "2026-01-01T00:00:00Z",
+    not_a_track: "2026-01-01T00:00:00Z",
+    trk_aabbccddee: "yesterday"
+  }));
+
+  // An entry for a removed track is fine; malformed entries are not.
+  assertErrorCodes(await validateRepository(root), ["added-ledger-entry", "added-ledger-entry"]);
+});
+
+test("an unreadable added-dates ledger is reported", async () => {
+  const root = await createFixtureRepo();
+  await writeFile(path.join(root, "tracks", "added.json"), "{ not json");
+
+  assertErrorCodes(await validateRepository(root), ["added-ledger-parse"]);
+});
+
 async function createFixtureRepo(options = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "xlrcdb-validator-"));
   await writeArtist(root, "art_5k3n9p2xq7", [

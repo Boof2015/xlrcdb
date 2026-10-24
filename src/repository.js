@@ -7,6 +7,13 @@ import { isValidLanguageTag } from "./languages.js";
 export const ARTIST_ID_PATTERN = /^art_[A-Za-z0-9_-]{10}$/;
 export const TRACK_ID_PATTERN = /^trk_[A-Za-z0-9_-]{10}$/;
 
+// When each track joined the database: { "trk_…": "2026-10-20T12:34:56.000Z" }. Written by the
+// normalizer as it assigns IDs (and once by scripts/backfill-added.mjs for older tracks), read
+// into index/catalog.json. It lives with the source data, not in index/, because index/ is
+// regenerated from scratch and the date can't be recomputed from the files.
+export const ADDED_LEDGER_PATH = "tracks/added.json";
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+
 const LENGTH_PATTERN = /^(\d+):([0-5]\d)$/;
 
 export function normalizeKey(value) {
@@ -164,6 +171,45 @@ export async function readTrackEntries(root) {
   }
 
   return entries;
+}
+
+// The added-dates ledger as a Map (empty when the file doesn't exist), plus format errors.
+// Entries for tracks that no longer exist are allowed: a takedown shouldn't also require
+// editing the ledger. The index generator just skips them.
+export async function readAddedLedger(root) {
+  let text;
+  try {
+    text = await readFile(path.join(root, ADDED_LEDGER_PATH), "utf8");
+  } catch (error) {
+    if (error?.code === "ENOENT") return { ledger: new Map(), errors: [] };
+    throw error;
+  }
+
+  const errors = [];
+  let document;
+  try {
+    document = JSON.parse(text);
+  } catch (error) {
+    return { ledger: new Map(), errors: [validationError("added-ledger-parse", ADDED_LEDGER_PATH, `Added-dates ledger is not valid JSON: ${error.message}`)] };
+  }
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    return { ledger: new Map(), errors: [validationError("added-ledger-shape", ADDED_LEDGER_PATH, "Added-dates ledger must be a JSON object of track id to ISO date")] };
+  }
+
+  const ledger = new Map();
+  for (const [id, value] of Object.entries(document)) {
+    if (!TRACK_ID_PATTERN.test(id) || typeof value !== "string" || !ISO_DATE_PATTERN.test(value) || Number.isNaN(Date.parse(value))) {
+      errors.push(validationError("added-ledger-entry", ADDED_LEDGER_PATH, `Added-dates ledger entry "${id}": "${value}" must map a track id to an ISO 8601 UTC timestamp`));
+      continue;
+    }
+    ledger.set(id, value);
+  }
+  return { ledger, errors };
+}
+
+export function serializeAddedLedger(ledger) {
+  const sorted = Object.fromEntries([...ledger.entries()].sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)));
+  return `${JSON.stringify(sorted, null, 2)}\n`;
 }
 
 export function buildAliasIndex(artists, errors = []) {

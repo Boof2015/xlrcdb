@@ -53,7 +53,8 @@ jobs:
 
       - name: Commit and push reconciled data
         run: |
-          if git diff --quiet; then
+          # status, not diff: diff ignores brand-new files (like a newly generated index file).
+          if [ -z "$(git status --porcelain)" ]; then
             echo "Nothing to reconcile."
             exit 0
           fi

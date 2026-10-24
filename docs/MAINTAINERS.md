@@ -7,9 +7,15 @@ do not need any of this — see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 - `artists/` — canonical artist records as TOML, sharded by ID prefix.
 - `tracks/` — canonical XLRC files, sharded by ID prefix.
+- `tracks/added.json`: when each track joined the database (track ID to ISO 8601 UTC
+  timestamp). The normalizer adds an entry as it assigns each new ID; it is source data, not
+  generated, because the date can't be recomputed from the files.
 - `incoming/` — temporary holding area for raw submitted `.xlrc` files. Normally empty;
   Reconcile drains it.
-- `index/` — generated from `artists/` and `tracks/`. Never edit by hand.
+- `index/` — generated from `artists/` and `tracks/`. Never edit by hand. Lookup clients use
+  `aliases.json` and the per-artist files; `catalog.json` is a single-file summary of every
+  artist and track (aliases as written, languages, translation languages, furigana / word
+  timing / voice flags, added date) for the website's search and browse pages.
 - `src/` — library modules (`repository.js`, `validator.js`, `indexGenerator.js`,
   `normalizer.js`, `prScope.js`).
 - `scripts/` — CLI entrypoints wrapping `src/`.
@@ -37,6 +43,7 @@ npm install
 | `npm run normalize` | Promote `incoming/` into canonical sharded paths, create artist records as needed, delete processed incoming files, regenerate `index/`. |
 | `npm run normalize:dry-run` | Preview normalization without writing. |
 | `npm run generate:index` | Regenerate `index/` only. |
+| `npm run backfill:added` | Fill `tracks/added.json` for tracks that predate it, from the date git first saw each file. Safe to re-run. |
 
 `npm run check` is what CI runs, so a green local `check` means a green CI check.
 
