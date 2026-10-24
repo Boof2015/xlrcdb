@@ -101,7 +101,7 @@
       "aliases": [
         "K/DA"
       ],
-      "tracks": 2
+      "tracks": 3
     },
     {
       "id": "art_iU49SIZjB6",
@@ -488,6 +488,23 @@
       "words": false,
       "voices": false,
       "added": "2026-09-19T00:56:52.000Z"
+    },
+    {
+      "id": "trk_zqHU1vLs_n",
+      "artist": "art_h2c952tsMt",
+      "title": "WATCH ME",
+      "length": 182,
+      "path": "tracks/zq/HU/trk_zqHU1vLs_n.xlrc",
+      "lang": "en",
+      "langs": [
+        "en"
+      ],
+      "lines": 55,
+      "translations": [],
+      "furigana": false,
+      "words": true,
+      "voices": false,
+      "added": "2026-10-24T22:50:58.068Z"
     }
   ]
 }
