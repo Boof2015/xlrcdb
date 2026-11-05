@@ -112,6 +112,14 @@
       "tracks": 1
     },
     {
+      "id": "art_qmgpKT0uz2",
+      "name": "забей лерочка",
+      "aliases": [
+        "забей лерочка"
+      ],
+      "tracks": 1
+    },
+    {
       "id": "art_xKHwh6DguS",
       "name": "Hans Solo",
       "aliases": [
@@ -324,6 +332,23 @@
       "words": false,
       "voices": false,
       "added": "2026-05-25T23:27:39.000Z"
+    },
+    {
+      "id": "trk_f7K6spu6WH",
+      "artist": "art_qmgpKT0uz2",
+      "title": "ничего нет",
+      "length": 195,
+      "path": "tracks/f7/K6/trk_f7K6spu6WH.xlrc",
+      "lang": "ru",
+      "langs": [
+        "ru"
+      ],
+      "lines": 32,
+      "translations": [],
+      "furigana": false,
+      "words": true,
+      "voices": false,
+      "added": "2026-11-05T21:48:59.575Z"
     },
     {
       "id": "trk_hoiwxqbe5s",
