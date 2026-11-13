@@ -104,6 +104,14 @@
       "tracks": 3
     },
     {
+      "id": "art_hEUCTafG_n",
+      "name": "Blankiet",
+      "aliases": [
+        "Blankiet"
+      ],
+      "tracks": 1
+    },
+    {
       "id": "art_iU49SIZjB6",
       "name": "9Lana",
       "aliases": [
@@ -400,6 +408,23 @@
       "words": false,
       "voices": false,
       "added": "2026-07-28T19:31:51.000Z"
+    },
+    {
+      "id": "trk_pJqGsVcuIZ",
+      "artist": "art_hEUCTafG_n",
+      "title": "CHMURA (+oldżi $uperstar )",
+      "length": 139,
+      "path": "tracks/pJ/qG/trk_pJqGsVcuIZ.xlrc",
+      "lang": "pl",
+      "langs": [
+        "pl"
+      ],
+      "lines": 32,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-11-13T20:24:01.474Z"
     },
     {
       "id": "trk_qzb1qC1Nfg",
