@@ -109,7 +109,7 @@
       "aliases": [
         "Blankiet"
       ],
-      "tracks": 1
+      "tracks": 2
     },
     {
       "id": "art_iU49SIZjB6",
@@ -212,6 +212,23 @@
       "words": false,
       "voices": false,
       "added": "2026-05-25T23:33:48.000Z"
+    },
+    {
+      "id": "trk_EHoxDnyhJw",
+      "artist": "art_hEUCTafG_n",
+      "title": "Testerzy",
+      "length": 164,
+      "path": "tracks/EH/ox/trk_EHoxDnyhJw.xlrc",
+      "lang": "pl",
+      "langs": [
+        "pl"
+      ],
+      "lines": 57,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-11-13T21:03:19.952Z"
     },
     {
       "id": "trk_GgKnMRMDHr",
