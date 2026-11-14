@@ -109,7 +109,7 @@
       "aliases": [
         "Blankiet"
       ],
-      "tracks": 2
+      "tracks": 3
     },
     {
       "id": "art_iU49SIZjB6",
@@ -357,6 +357,23 @@
       "words": false,
       "voices": false,
       "added": "2026-05-25T23:27:39.000Z"
+    },
+    {
+      "id": "trk_Z13c-nAmp-",
+      "artist": "art_hEUCTafG_n",
+      "title": "GNIOTEK",
+      "length": 166,
+      "path": "tracks/Z1/3c/trk_Z13c-nAmp-.xlrc",
+      "lang": "pl",
+      "langs": [
+        "pl"
+      ],
+      "lines": 58,
+      "translations": [],
+      "furigana": false,
+      "words": false,
+      "voices": false,
+      "added": "2026-11-14T01:32:26.600Z"
     },
     {
       "id": "trk_f7K6spu6WH",
