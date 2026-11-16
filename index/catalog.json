@@ -383,10 +383,13 @@
       "path": "tracks/f7/K6/trk_f7K6spu6WH.xlrc",
       "lang": "ru",
       "langs": [
-        "ru"
+        "ru",
+        "en"
       ],
       "lines": 32,
-      "translations": [],
+      "translations": [
+        "en"
+      ],
       "furigana": false,
       "words": true,
       "voices": false,
