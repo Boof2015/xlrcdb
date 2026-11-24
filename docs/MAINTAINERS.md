@@ -27,6 +27,26 @@ characters of that suffix, so `art_61iD-18vfX` lives at `artists/61/iD/art_61iD-
 The repository is served directly from GitHub Pages (`.nojekyll` is present, there is no build
 step) at `https://boof2015.github.io/xlrcdb/`.
 
+## Stats for badges
+
+Reconcile publishes [index/stats.json](https://boof2015.github.io/xlrcdb/index/stats.json)
+with each index rebuild. Version 1 contains catalog-wide counts under `totals` and the
+same counts per artist under `artists`, keyed by stable artist ID. `totals.artistCount`
+includes artists with zero tracks.
+
+Use the stats file as the URL for a [Shields dynamic JSON badge](https://shields.io/badges/dynamic-json-badge).
+
+| Badge value | Shields query |
+| --- | --- |
+| Individually timed words or syllables in the catalog | `$.totals.timedSegments` |
+| K/DA tracks with word timing | `$.artists.art_h2c952tsMt.tracksWithWordTiming` |
+
+Runtime is in seconds. Each nonempty source lyric line counts once even if it has several
+timestamps. Each nonempty timed segment counts once, and each furigana annotation counts
+once. Language keys are lowercase. `tracksByPrimaryLanguage` uses the track's primary
+language header. `translatedLinesByLanguage` counts a source line once for each language
+with a nonempty inline translation. This includes romanization under tags such as `ja-latn`.
+
 ## Local Commands
 
 Install once:

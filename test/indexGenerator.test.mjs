@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +23,7 @@ test("repository index files match generated output", {
   const committedIndexPaths = (await findFiles(path.join(repoRoot, "index"), ".json"))
     .map((absolutePath) => path.relative(repoRoot, absolutePath).split(path.sep).join("/"));
 
-  assert.deepEqual([...files.keys()], committedIndexPaths);
+  assert.deepEqual([...files.keys()].sort(), committedIndexPaths);
 
   for (const repoPath of committedIndexPaths) {
     assert.equal(files.get(repoPath), await readFile(path.join(repoRoot, repoPath), "utf8"));
@@ -181,6 +181,65 @@ test("catalog lists artists and tracks with their contents and added dates", asy
       }
     ]
   });
+});
+
+test("stats count source lines once and reflect track removals on regeneration", async () => {
+  const root = await createFixtureRepo({
+    tracks: [{
+      id: "trk_a1b2c3d4e5",
+      artist: "Example Artist",
+      title: "Timed Track",
+      length: "01:05",
+      lang: "JA",
+      langs: "ja,en,ja-Latn",
+      lines: [
+        "[00:01.00][00:03.00]<00:01.00>私[わたし]<00:01.50>です<00:02.00>",
+        "[>EN]It's me",
+        "[>en]I am",
+        "[>ja-Latn]watashi desu",
+        "[00:04.00]猫[ねこ]",
+        "[>en]",
+        "[00:05.00]<00:05.00>",
+        "[00:06.00]"
+      ]
+    }]
+  });
+  const secondArtist = "art_zyxwvutsrq";
+  await writeArtist(root, secondArtist, { canonicalName: "Second Artist", aliases: ["Second Artist"] });
+  await writeTrack(root, {
+    id: "trk_zzzzzzzzzz", artist: "Second Artist", title: "Plain Track",
+    length: "00:10", lang: "ja", langs: "ja", lines: ["[00:01.00]空"]
+  });
+
+  const statsPath = "index/stats.json";
+  const firstBuild = (await generateIndex(root)).get(statsPath);
+  assert.equal((await generateIndex(root)).get(statsPath), firstBuild);
+  const stats = JSON.parse(firstBuild);
+  const timed = {
+    tracks: 1, runtimeSeconds: 65, lyricLines: 2, timedSegments: 2, furiganaAnnotations: 2,
+    tracksWithWordTiming: 1, tracksWithFurigana: 1, tracksWithTranslations: 1,
+    tracksByPrimaryLanguage: { ja: 1 }, translatedLinesByLanguage: { en: 1, "ja-latn": 1 }
+  };
+  const plain = {
+    tracks: 1, runtimeSeconds: 10, lyricLines: 1, timedSegments: 0, furiganaAnnotations: 0,
+    tracksWithWordTiming: 0, tracksWithFurigana: 0, tracksWithTranslations: 0,
+    tracksByPrimaryLanguage: { ja: 1 }, translatedLinesByLanguage: {}
+  };
+  assert.deepEqual(stats, {
+    version: 1,
+    totals: {
+      ...timed, artistCount: 2, tracks: 2, runtimeSeconds: 75, lyricLines: 3,
+      tracksByPrimaryLanguage: { ja: 2 }
+    },
+    artists: { art_5k3n9p2xq7: timed, [secondArtist]: plain }
+  });
+
+  await unlink(path.join(root, "tracks/a1/b2/trk_a1b2c3d4e5.xlrc"));
+  await generateIndex(root);
+  const afterRemoval = JSON.parse(await readFile(path.join(root, statsPath), "utf8"));
+  assert.deepEqual(afterRemoval.totals, { artistCount: 2, ...plain });
+  assert.equal(afterRemoval.artists.art_5k3n9p2xq7.tracks, 0);
+  assert.deepEqual(afterRemoval.artists[secondArtist], plain);
 });
 
 async function createFixtureRepo(options = {}) {

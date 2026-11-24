@@ -27,6 +27,7 @@ export async function buildIndexFiles(rootDir) {
   }));
 
   files.set("index/catalog.json", toJson(buildCatalog(repository, tracksByArtist)));
+  files.set("index/stats.json", toJson(buildStats(repository)));
 
   for (const artist of [...repository.artists].sort((left, right) => compareStrings(left.id, right.id))) {
     const tracks = (tracksByArtist.get(artist.id) ?? [])
@@ -94,8 +95,7 @@ function buildCatalog(repository, tracksByArtist) {
   return { version: 1, artists, tracks };
 }
 
-function describeTrack(file) {
-  const meta = file?.meta ?? {};
+function sourceLyricLines(file) {
   const seen = new Set();
   const lyrics = [];
   for (const line of file?.lines ?? []) {
@@ -103,9 +103,19 @@ function describeTrack(file) {
     seen.add(line.line);
     if (!line.isEmpty) lyrics.push(line);
   }
-  const translations = [...new Set(lyrics.flatMap((line) => line.translations
+  return lyrics;
+}
+
+function translationLanguages(line) {
+  return line.translations
     .filter((translation) => translation.text.trim())
-    .map((translation) => translation.lang)))].sort(compareStrings);
+    .map((translation) => translation.lang);
+}
+
+function describeTrack(file) {
+  const meta = file?.meta ?? {};
+  const lyrics = sourceLyricLines(file);
+  const translations = [...new Set(lyrics.flatMap(translationLanguages))].sort(compareStrings);
   return {
     lang: typeof meta.lang === "string" ? meta.lang.trim() : "",
     langs: Array.isArray(meta.langs) ? meta.langs : [],
@@ -115,6 +125,67 @@ function describeTrack(file) {
     words: lyrics.some((line) => line.words.length > 0),
     voices: lyrics.some((line) => Boolean(line.voice))
   };
+}
+
+function emptyStats() {
+  return {
+    tracks: 0,
+    runtimeSeconds: 0,
+    lyricLines: 0,
+    timedSegments: 0,
+    furiganaAnnotations: 0,
+    tracksWithWordTiming: 0,
+    tracksWithFurigana: 0,
+    tracksWithTranslations: 0,
+    tracksByPrimaryLanguage: {},
+    translatedLinesByLanguage: {}
+  };
+}
+
+function countTrackLyrics(file) {
+  let lyricLines = 0;
+  let timedSegments = 0;
+  let furiganaAnnotations = 0;
+  const translatedLines = new Map();
+
+  for (const line of sourceLyricLines(file)) {
+    if (!line.text.trim()) continue;
+    lyricLines++;
+    timedSegments += line.words.filter((word) => word.text.trim()).length;
+    furiganaAnnotations += line.furigana.length;
+    const languages = new Set(translationLanguages(line).map((lang) => lang.toLowerCase()));
+    for (const language of languages) {
+      translatedLines.set(language, (translatedLines.get(language) ?? 0) + 1);
+    }
+  }
+  return { lyricLines, timedSegments, furiganaAnnotations, translatedLines };
+}
+
+function buildStats(repository) {
+  const totals = { artistCount: repository.artists.length, ...emptyStats() };
+  const artists = Object.fromEntries(repository.artists.map((artist) => [artist.id, emptyStats()]));
+
+  for (const track of repository.tracks) {
+    const primaryLanguage = track.file.meta.lang.trim().toLowerCase();
+    const counts = countTrackLyrics(track.file);
+    for (const stats of [totals, artists[track.artistId]]) {
+      stats.tracks++;
+      stats.runtimeSeconds += track.lengthSeconds;
+      stats.lyricLines += counts.lyricLines;
+      stats.timedSegments += counts.timedSegments;
+      stats.furiganaAnnotations += counts.furiganaAnnotations;
+      if (counts.timedSegments > 0) stats.tracksWithWordTiming++;
+      if (counts.furiganaAnnotations > 0) stats.tracksWithFurigana++;
+      if (counts.translatedLines.size > 0) stats.tracksWithTranslations++;
+      const primary = stats.tracksByPrimaryLanguage;
+      primary[primaryLanguage] = (primary[primaryLanguage] ?? 0) + 1;
+      const translated = stats.translatedLinesByLanguage;
+      for (const [language, lines] of counts.translatedLines) {
+        translated[language] = (translated[language] ?? 0) + lines;
+      }
+    }
+  }
+  return { version: 1, totals, artists };
 }
 
 function buildAliases(artists) {

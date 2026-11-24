@@ -15,7 +15,16 @@ test("normalizing with no incoming files refreshes an empty index", async () => 
     incomingProcessed: 0,
     artistsCreated: 0,
     tracksCreated: 0,
-    generatedFiles: 2
+    generatedFiles: 3
+  });
+  assert.deepEqual(JSON.parse(await readFile(path.join(root, "index", "stats.json"), "utf8")), {
+    version: 1,
+    totals: {
+      artistCount: 0, tracks: 0, runtimeSeconds: 0, lyricLines: 0, timedSegments: 0,
+      furiganaAnnotations: 0, tracksWithWordTiming: 0, tracksWithFurigana: 0,
+      tracksWithTranslations: 0, tracksByPrimaryLanguage: {}, translatedLinesByLanguage: {}
+    },
+    artists: {}
   });
   assert.deepEqual(JSON.parse(await readFile(path.join(root, "index", "catalog.json"), "utf8")), {
     version: 1,
