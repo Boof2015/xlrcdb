@@ -1,0 +1,274 @@
+{
+  "version": 1,
+  "totals": {
+    "artistCount": 16,
+    "tracks": 24,
+    "runtimeSeconds": 5476,
+    "lyricLines": 1271,
+    "timedSegments": 1786,
+    "furiganaAnnotations": 457,
+    "tracksWithWordTiming": 4,
+    "tracksWithFurigana": 6,
+    "tracksWithTranslations": 12,
+    "tracksByPrimaryLanguage": {
+      "ja": 8,
+      "pl": 4,
+      "en": 10,
+      "ru": 1,
+      "id": 1
+    },
+    "translatedLinesByLanguage": {
+      "en": 388,
+      "ja-latn": 224
+    }
+  },
+  "artists": {
+    "art_4eTOqNDGBP": {
+      "tracks": 1,
+      "runtimeSeconds": 248,
+      "lyricLines": 32,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "id": 1
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_61iD-18vfX": {
+      "tracks": 1,
+      "runtimeSeconds": 197,
+      "lyricLines": 74,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "en": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 4
+      }
+    },
+    "art_73GNkgdD0-": {
+      "tracks": 1,
+      "runtimeSeconds": 272,
+      "lyricLines": 26,
+      "timedSegments": 0,
+      "furiganaAnnotations": 80,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 1,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ja": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 26,
+        "ja-latn": 26
+      }
+    },
+    "art_BYzLaaHjXa": {
+      "tracks": 1,
+      "runtimeSeconds": 193,
+      "lyricLines": 50,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ja": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 50
+      }
+    },
+    "art_FalWgEgiQ_": {
+      "tracks": 3,
+      "runtimeSeconds": 633,
+      "lyricLines": 115,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "en": 3
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_KId1XhjXMt": {
+      "tracks": 1,
+      "runtimeSeconds": 772,
+      "lyricLines": 156,
+      "timedSegments": 892,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 1,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "en": 1
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_MWaE3FbqZ7": {
+      "tracks": 1,
+      "runtimeSeconds": 216,
+      "lyricLines": 42,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "en": 1
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_NKQqeNBOnB": {
+      "tracks": 1,
+      "runtimeSeconds": 178,
+      "lyricLines": 43,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "en": 1
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_XLr_qG2XPp": {
+      "tracks": 1,
+      "runtimeSeconds": 273,
+      "lyricLines": 30,
+      "timedSegments": 0,
+      "furiganaAnnotations": 10,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 1,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ja": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 30,
+        "ja-latn": 30
+      }
+    },
+    "art__Ok1iVJB0M": {
+      "tracks": 1,
+      "runtimeSeconds": 179,
+      "lyricLines": 49,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ja": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 49,
+        "ja-latn": 49
+      }
+    },
+    "art_eEAHBbIlqt": {
+      "tracks": 3,
+      "runtimeSeconds": 611,
+      "lyricLines": 143,
+      "timedSegments": 0,
+      "furiganaAnnotations": 271,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 3,
+      "tracksWithTranslations": 3,
+      "tracksByPrimaryLanguage": {
+        "ja": 3
+      },
+      "translatedLinesByLanguage": {
+        "en": 126,
+        "ja-latn": 80
+      }
+    },
+    "art_h2c952tsMt": {
+      "tracks": 3,
+      "runtimeSeconds": 531,
+      "lyricLines": 215,
+      "timedSegments": 745,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 2,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 2,
+      "tracksByPrimaryLanguage": {
+        "en": 3
+      },
+      "translatedLinesByLanguage": {
+        "en": 32
+      }
+    },
+    "art_hEUCTafG_n": {
+      "tracks": 3,
+      "runtimeSeconds": 469,
+      "lyricLines": 147,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "pl": 3
+      },
+      "translatedLinesByLanguage": {}
+    },
+    "art_iU49SIZjB6": {
+      "tracks": 1,
+      "runtimeSeconds": 190,
+      "lyricLines": 44,
+      "timedSegments": 0,
+      "furiganaAnnotations": 96,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 1,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ja": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 39,
+        "ja-latn": 39
+      }
+    },
+    "art_qmgpKT0uz2": {
+      "tracks": 1,
+      "runtimeSeconds": 195,
+      "lyricLines": 32,
+      "timedSegments": 149,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 1,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 1,
+      "tracksByPrimaryLanguage": {
+        "ru": 1
+      },
+      "translatedLinesByLanguage": {
+        "en": 32
+      }
+    },
+    "art_xKHwh6DguS": {
+      "tracks": 1,
+      "runtimeSeconds": 319,
+      "lyricLines": 73,
+      "timedSegments": 0,
+      "furiganaAnnotations": 0,
+      "tracksWithWordTiming": 0,
+      "tracksWithFurigana": 0,
+      "tracksWithTranslations": 0,
+      "tracksByPrimaryLanguage": {
+        "pl": 1
+      },
+      "translatedLinesByLanguage": {}
+    }
+  }
+}
