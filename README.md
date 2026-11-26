@@ -2,6 +2,11 @@
 
 The community lyrics database for the [XLRC format](https://www.npmjs.com/package/@boof2015/xlrc).
 
+[![Tracks in xlrcdb](https://img.shields.io/badge/dynamic/json?url=https://boof2015.github.io/xlrcdb/index/stats.json&query=$.totals.tracks&label=xlrcdb&suffix=%20tracks&color=6750a4)](https://astramusic.dev/xlrcdb/)
+[![Artists in xlrcdb](https://img.shields.io/badge/dynamic/json?url=https://boof2015.github.io/xlrcdb/index/stats.json&query=$.totals.artistCount&label=xlrcdb&suffix=%20artists&color=6750a4)](https://astramusic.dev/xlrcdb/)
+[![Lyric lines in xlrcdb](https://img.shields.io/badge/dynamic/json?url=https://boof2015.github.io/xlrcdb/index/stats.json&query=$.totals.lyricLines&label=xlrcdb&suffix=%20lyric%20lines&color=6750a4)](https://astramusic.dev/xlrcdb/)
+[![Total runtime in xlrcdb](https://img.shields.io/badge/dynamic/json?url=https://boof2015.github.io/xlrcdb/index/stats.json&query=$.totals.runtimeSeconds&label=xlrcdb&suffix=%20seconds%20of%20music&color=6750a4)](https://astramusic.dev/xlrcdb/)
+
 XLRC is a plain-text lyric format with timing, furigana, translations, and per-word
 timestamps. xlrcdb collects `.xlrc` files, gives every track a stable ID, and publishes a
 generated index that apps can look tracks up in by artist, title, and duration.
@@ -29,6 +34,18 @@ await lookup({
 
 `length` is the track duration in seconds. It is required — xlrcdb matches on artist, title,
 and duration together so that different recordings of the same song stay distinct.
+
+## Add an xlrcdb Badge
+
+If your app gets its lyrics from xlrcdb, paste this badge into your README so readers can browse the catalog.
+
+[![Lyrics from xlrcdb](https://img.shields.io/badge/lyrics-xlrcdb-6750a4?style=flat-square)](https://astramusic.dev/xlrcdb/)
+
+```markdown
+[![Lyrics from xlrcdb](https://img.shields.io/badge/lyrics-xlrcdb-6750a4?style=flat-square)](https://astramusic.dev/xlrcdb/)
+```
+
+For live track counts, word timing, translations, or a badge for a favorite artist or song, [browse the badge gallery](docs/BADGES.md).
 
 ## Contribute
 
